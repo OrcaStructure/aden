@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "deliberate_sessions",
+  "info": {
+    "singularName": "deliberate-session",
+    "pluralName": "deliberate-sessions",
+    "displayName": "Deliberate Session"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "totalMinutes": {
+      "type": "integer"
+    },
+    "plannedItems": {
+      "type": "json"
+    },
+    "actualItems": {
+      "type": "json"
+    }
+  }
+}

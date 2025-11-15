@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "practice_activities",
+  "info": {
+    "singularName": "practice-activity",
+    "pluralName": "practice-activities",
+    "displayName": "Practice Activity"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "weight": {
+      "type": "decimal"
+    },
+    "children_activities": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::practice-activity.practice-activity",
+      "mappedBy": "parent_activity"
+    },
+    "parent_activity": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::practice-activity.practice-activity",
+      "inversedBy": "children_activities"
+    }
+  }
+}
