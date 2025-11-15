@@ -161,3 +161,54 @@ export async function PATCH(req, context) {
     );
   }
 }
+
+export async function DELETE(req, context) {
+  const { id } = (await context.params) || {};
+
+  if (!id) {
+    return NextResponse.json(
+      { error: "Missing id param in URL" },
+      { status: 400 }
+    );
+  }
+
+  console.log("🗑️ DELETE /activities incoming", { id });
+
+  try {
+    try {
+      // Strapi often returns 200/204 with empty body for DELETE,
+      // which makes res.json() in strapiFetch throw a SyntaxError.
+      await strapiFetch(`/api/practice-activities/${id}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      // If it's just "Unexpected end of JSON input", assume delete succeeded.
+      if (
+        err instanceof SyntaxError &&
+        String(err.message).includes("Unexpected end of JSON input")
+      ) {
+        console.warn(
+          "🗑️ Strapi DELETE returned no JSON body; treating as success"
+        );
+      } else {
+        // Any other error is a real failure
+        throw err;
+      }
+    }
+
+    // After deletion (or assumed success), rebuild the tree
+    const tree = await fetchPracticeActivityTree();
+    return NextResponse.json({ tree });
+  } catch (err) {
+    console.error("DELETE /api/deliberate/activities/:id error:", err);
+    return NextResponse.json(
+      {
+        error: "Failed to delete activity",
+        details: String(err),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
