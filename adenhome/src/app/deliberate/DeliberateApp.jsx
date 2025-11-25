@@ -38,6 +38,31 @@ function findNodeById(nodes, id) {
   return null;
 }
 
+// NEW: build enabled-map from tree, preserving previous choices where possible
+function buildEnabledMapFromTree(tree, prev = {}) {
+  const map = {};
+  function walk(nodes) {
+    (nodes || []).forEach((n) => {
+      map[n.id] = prev[n.id] ?? true; // default ON
+      if (n.children?.length) walk(n.children);
+    });
+  }
+  walk(tree || []);
+  return map;
+}
+
+// NEW: prune the tree based on enabledMap (id → bool)
+// Any id with `false` is dropped; `undefined` or `true` is kept.
+function pruneTree(nodes, enabledMap) {
+  if (!Array.isArray(nodes)) return [];
+  return nodes
+    .filter((n) => enabledMap[n.id] !== false)
+    .map((n) => ({
+      ...n,
+      children: pruneTree(n.children || [], enabledMap),
+    }));
+}
+
 // Recursively allocate minutes over the tree.
 function allocateActivityTree(nodes, totalMinutes, parentPath = []) {
   const activeNodes = (nodes || []).filter((n) => (n.weight ?? 0) > 0);
@@ -91,6 +116,9 @@ export default function DeliberateApp() {
   const [plan, setPlan] = useState([]);
   const [actualMinutes, setActualMinutes] = useState({});
 
+  // NEW: session-level toggle state (id → bool)
+  const [enabledMap, setEnabledMap] = useState({});
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -110,7 +138,9 @@ export default function DeliberateApp() {
         const json = await res.json();
         // Expecting json.tree where each node has:
         // { id, documentId, name, weight, parentId, children: [...] }
-        setActivityTree(json.tree || []);
+        const tree = json.tree || [];
+        setActivityTree(tree);
+        setEnabledMap((prev) => buildEnabledMapFromTree(tree, prev));
       } catch (err) {
         console.error(err);
         setActivityError("Could not load activities");
@@ -153,7 +183,9 @@ export default function DeliberateApp() {
     const res = await fetch("/api/deliberate/activities");
     if (!res.ok) throw new Error("Failed to refresh activities");
     const json = await res.json();
-    setActivityTree(json.tree || []);
+    const tree = json.tree || [];
+    setActivityTree(tree);
+    setEnabledMap((prev) => buildEnabledMapFromTree(tree, prev));
   }
 
   async function addActivityAtCurrentLevel(name, weight) {
@@ -175,7 +207,9 @@ export default function DeliberateApp() {
 
       if (!res.ok) throw new Error("Failed to create activity");
       const json = await res.json();
-      setActivityTree(json.tree || []);
+      const tree = json.tree || [];
+      setActivityTree(tree);
+      setEnabledMap((prev) => buildEnabledMapFromTree(tree, prev));
     } catch (err) {
       console.error(err);
       setActivityError("Error saving activity");
@@ -245,7 +279,9 @@ export default function DeliberateApp() {
       }
 
       const json = await res.json();
-      setActivityTree(json.tree || []);
+      const tree = json.tree || [];
+      setActivityTree(tree);
+      setEnabledMap((prev) => buildEnabledMapFromTree(tree, prev));
     } catch (err) {
       console.error(err);
       setActivityError("Error updating activity");
@@ -269,7 +305,9 @@ export default function DeliberateApp() {
       });
       if (!res.ok) throw new Error("Failed to delete activity");
       const json = await res.json();
-      setActivityTree(json.tree || []);
+      const tree = json.tree || [];
+      setActivityTree(tree);
+      setEnabledMap((prev) => buildEnabledMapFromTree(tree, prev));
       setPlan([]);
       setActualMinutes({});
     } catch (err) {
@@ -278,20 +316,83 @@ export default function DeliberateApp() {
     }
   }
 
+  // ---- Toggles (session-level, NOT persisted) ----
+
+  function toggleActivity(id) {
+    setEnabledMap((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }
+
   // ---- Plan building ----
 
-  const buildPlan = () => {
-    const allocations = allocateActivityTree(
-      activityTree,
-      Number(totalMinutes)
-    );
-    setPlan(allocations);
+  const buildPlan = async () => {
+    const minutes = Number(totalMinutes) || 0;
+    if (minutes <= 0) return;
 
-    const initialActuals = {};
-    allocations.forEach((p) => {
-      initialActuals[p.activityId] = p.suggestedMinutes;
-    });
-    setActualMinutes(initialActuals);
+    // If any activity is explicitly turned off, use local allocation over pruned tree
+    const hasDisabled = Object.values(enabledMap).some((v) => v === false);
+
+    if (hasDisabled) {
+      console.log("Some activities disabled; using local allocation only");
+      const pruned = pruneTree(activityTree, enabledMap);
+      const allocations = allocateActivityTree(pruned, minutes);
+
+      setPlan(allocations);
+
+      const initialActuals = {};
+      allocations.forEach((p) => {
+        initialActuals[p.activityId] = p.suggestedMinutes;
+      });
+      setActualMinutes(initialActuals);
+      return;
+    }
+
+    // Otherwise, use server history-aware plan as before
+    try {
+      // Ask the server for a history-aware plan
+      const res = await fetch(
+        `/api/deliberate/sessions?totalMinutes=${minutes}`
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("Plan API error:", res.status, text || "no body");
+        throw new Error("Plan API failed");
+      }
+
+      const json = await res.json();
+      let allocations = Array.isArray(json.plan) ? json.plan : [];
+
+      // Fallback to simple weight-based allocation if the server
+      // returns nothing for some reason.
+      if (!allocations.length) {
+        console.warn(
+          "Plan API returned empty plan; falling back to client allocation"
+        );
+        allocations = allocateActivityTree(activityTree, minutes);
+      }
+
+      setPlan(allocations);
+
+      const initialActuals = {};
+      allocations.forEach((p) => {
+        initialActuals[p.activityId] = p.suggestedMinutes;
+      });
+      setActualMinutes(initialActuals);
+    } catch (err) {
+      console.error("Error building plan; falling back to local:", err);
+
+      const allocations = allocateActivityTree(activityTree, minutes);
+      setPlan(allocations);
+
+      const initialActuals = {};
+      allocations.forEach((p) => {
+        initialActuals[p.activityId] = p.suggestedMinutes;
+      });
+      setActualMinutes(initialActuals);
+    }
   };
 
   const handleActualChange = (activityId, value) => {
@@ -360,6 +461,8 @@ export default function DeliberateApp() {
         onEnterActivity={enterActivity}
         onGoUp={goUpOneLevel}
         showBack={currentPath.length > 0}
+        enabledMap={enabledMap}           // NEW
+        onToggleActivity={toggleActivity} // NEW
       />
 
       <SessionPlanner

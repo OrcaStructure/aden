@@ -12,6 +12,8 @@ export default function ActivityDashboard({
   onEnterActivity,
   onGoUp,
   showBack,
+  enabledMap,        // NEW
+  onToggleActivity,  // NEW
 }) {
   const [newName, setNewName] = useState("");
   const [newWeight, setNewWeight] = useState(1);
@@ -106,83 +108,69 @@ export default function ActivityDashboard({
 
       {/* Activity table */}
       <div className="border border-gray-800 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-900 text-gray-300">
-            <tr>
-              <th className="px-3 py-2 text-left">Activity</th>
-              <th className="px-3 py-2 text-left">Weight</th>
-              <th className="px-3 py-2 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activities.map((a) => (
-              <tr key={a.id} className="border-t border-gray-800">
-                <td className="px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => onEnterActivity(a.id)}
-                    className="text-left text-sm text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline"
-                  >
-                    {a.name}
-                  </button>
-                </td>
-                <td className="px-3 py-2">
-                  <input
-                    type="number"
-                    min={0}
-                    className="
-                      bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm w-24
-                      [appearance:textfield]
-                      [&::-webkit-outer-spin-button]:appearance-none
-                      [&::-webkit-inner-spin-button]:appearance-none
-                    "
-                    value={a.weight ?? ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      onUpdateWeight(a.id, value, { immediate: false });
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value;
-                      onUpdateWeight(a.id, value, { immediate: true });
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.currentTarget.blur(); // triggers onBlur save
-                      }
-                    }}
-                  />
-                </td>
-                <td className="px-3 py-2 text-right space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => onEnterActivity(a.id)}
-                    className="text-xs text-gray-300 hover:text-white"
-                  >
-                    Open
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteActivity(a.id)}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!activities.length && (
-              <tr>
-                <td
-                  colSpan={3}
-                  className="px-3 py-4 text-center text-gray-500 text-sm"
-                >
-                  No activities here yet. Add your first one above.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+  <table className="w-full text-sm">
+    <thead className="bg-gray-900 text-gray-300">
+      <tr>
+        <th className="px-3 py-2 text-left">On?</th><th className="px-3 py-2 text-left">Activity</th><th className="px-3 py-2 text-left">Weight</th><th className="px-3 py-2 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {activities.map((a) => (
+        <tr key={a.id} className="border-t border-gray-800">
+          <td className="px-3 py-2">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={enabledMap?.[a.id] ?? true}
+              onChange={() => onToggleActivity(a.id)}
+            />
+          </td><td className="px-3 py-2">
+            <button
+              type="button"
+              onClick={() => onEnterActivity(a.id)}
+              className="text-left text-sm text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline"
+            >
+              {a.name}
+            </button>
+          </td><td className="px-3 py-2">
+            <input
+              type="number"
+              min={0}
+              className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm w-24 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={a.weight ?? ""}
+              onChange={(e) => onUpdateWeight(a.id, e.target.value, { immediate: false })}
+              onBlur={(e) => onUpdateWeight(a.id, e.target.value, { immediate: true })}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            />
+          </td><td className="px-3 py-2 text-right space-x-2">
+            <button
+              type="button"
+              onClick={() => onEnterActivity(a.id)}
+              className="text-xs text-gray-300 hover:text-white"
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeleteActivity(a.id)}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Remove
+            </button>
+          </td>
+        </tr>
+      ))}
+      {!activities.length && (
+        <tr>
+          <td colSpan={4} className="px-3 py-4 text-center text-gray-500 text-sm">
+            No activities here yet. Add your first one above.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+
     </section>
   );
 }
