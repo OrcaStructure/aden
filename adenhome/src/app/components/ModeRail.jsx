@@ -5,6 +5,9 @@ export default function ModeRail({
   activeModeId,
   onModeChange,
   dbReady,
+  onModeNameChange,
+  onAddMode,
+  onRemoveMode,
 }) {
   return (
     <aside className="w-24 shrink-0">
@@ -15,20 +18,52 @@ export default function ModeRail({
         </p>
         <div className="space-y-3">
           {modes.map((mode) => (
-            <button
+            <div
               key={mode.id}
-              type="button"
-              onClick={() => onModeChange(mode.id)}
-              className={`flex h-12 w-full items-center justify-center rounded-xl border text-[11px] uppercase tracking-[0.2em] ${
+              className={`rounded-xl border px-2 py-2 ${
                 activeModeId === mode.id
-                  ? "border-[#E4A949] bg-[#E4A949] text-[#1A140C]"
-                  : "border-[#2E2A22] text-[#BFB6A2] hover:border-[#4A4236]"
+                  ? "border-[#E4A949] bg-[#201A10]"
+                  : "border-[#2E2A22] bg-[#14130F]"
               }`}
             >
-              {mode.name}
-            </button>
+              <button
+                type="button"
+                onClick={() => onModeChange(mode.id)}
+                className={`w-full rounded-lg px-2 py-2 text-[11px] uppercase tracking-[0.2em] ${
+                  activeModeId === mode.id
+                    ? "bg-[#E4A949] text-[#1A140C]"
+                    : "text-[#BFB6A2] hover:bg-[#201A10]"
+                }`}
+              >
+                {mode.name}
+              </button>
+              <input
+                value={mode.name}
+                onChange={(event) =>
+                  onModeNameChange(mode.id, event.target.value)
+                }
+                className="mt-2 w-full rounded-lg border border-[#2A261E] bg-[#10100C] px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-[#E7E0D2] focus:border-[#E4A949] focus:outline-none"
+                aria-label={`Rename ${mode.name}`}
+              />
+              {mode.name !== "Personal" && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveMode(mode.id)}
+                  className="mt-2 w-full rounded-lg border border-[#4A2A2A] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[#F2B3B3] hover:border-[#D97C7C]"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={onAddMode}
+          className="w-full rounded-xl border border-dashed border-[#5A4B2A] px-2 py-2 text-[11px] uppercase tracking-[0.2em] text-[#F1D79A] hover:border-[#E4A949]"
+        >
+          Add mode
+        </button>
       </div>
       <div className="rounded-2xl border border-[#2A261E] bg-[#14130F] p-4 text-xs text-[#9E957F]">
         <p className="uppercase tracking-[0.2em] text-[#7F7764]">Status</p>

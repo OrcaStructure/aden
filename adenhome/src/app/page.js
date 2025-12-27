@@ -16,6 +16,15 @@ const INITIAL_MODES = [
   { id: "m3", name: "Deep Focus", color: "bg-amber-700" },
 ];
 
+const MODE_COLORS = [
+  "bg-slate-700",
+  "bg-emerald-700",
+  "bg-amber-700",
+  "bg-rose-700",
+  "bg-sky-700",
+  "bg-lime-700",
+];
+
 const MINUTE_HEIGHT = 2;
 const DAY_MINUTES = 24 * 60;
 const DEFAULT_TASK_DURATION = 30;
@@ -37,7 +46,7 @@ export default function PlannerPage() {
   const dayKey = useMemo(() => formatDateKey(todayRef.current), []);
   const [tasks, setTasks] = useState([]);
   const [plannedBlocks, setPlannedBlocks] = useState([]);
-  const modes = INITIAL_MODES;
+  const [modes, setModes] = useState(INITIAL_MODES);
   const [activeModeId, setActiveModeId] = useState("m1");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -53,10 +62,6 @@ export default function PlannerPage() {
   const [saveStatus, setSaveStatus] = useState("idle");
 
   const db = useMemo(() => getFirestore(app), []);
-  const modeIdByName = useMemo(
-    () => new Map(modes.map((mode) => [mode.name, mode.id])),
-    [modes]
-  );
 
   const getModeOrderedTasks = useCallback(
     (list, modeName) =>
@@ -91,6 +96,9 @@ export default function PlannerPage() {
             if (data.tasks.length > 0) {
               setSelectedTaskId((prev) => prev ?? data.tasks[0].id);
             }
+          }
+          if (Array.isArray(data.modes) && data.modes.length > 0) {
+            setModes(data.modes);
           }
           if (Array.isArray(data.plannedBlocks)) {
             setPlannedBlocks(data.plannedBlocks);
@@ -327,6 +335,50 @@ export default function PlannerPage() {
     );
   }, []);
 
+  const handleModeNameChange = useCallback((modeId, name) => {
+    hasLocalEditsRef.current = true;
+    setModes((prev) =>
+      prev.map((mode) => (mode.id === modeId ? { ...mode, name } : mode))
+    );
+  }, []);
+
+  const handleAddMode = useCallback(() => {
+    hasLocalEditsRef.current = true;
+    setModes((prev) => {
+      const nextIndex = prev.length;
+      const nextColor = MODE_COLORS[nextIndex % MODE_COLORS.length];
+      return [
+        ...prev,
+        {
+          id: `mode-${Date.now()}`,
+          name: `Mode ${nextIndex + 1}`,
+          color: nextColor,
+        },
+      ];
+    });
+  }, []);
+
+  const handleRemoveMode = useCallback((modeId) => {
+    hasLocalEditsRef.current = true;
+    const fallbackModeName =
+      modes.find((mode) => mode.id === "m1")?.name || "Personal";
+    const removedModeName = modes.find((mode) => mode.id === modeId)?.name;
+    setModes((prev) => prev.filter((mode) => mode.id !== modeId));
+    setHourModes((prev) =>
+      prev.map((mode) => (mode === modeId ? "m1" : mode))
+    );
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.mode === removedModeName
+          ? { ...task, mode: fallbackModeName }
+          : task
+      )
+    );
+    if (activeModeId === modeId) {
+      setActiveModeId("m1");
+    }
+  }, [activeModeId, modes]);
+
   const handleMoveTask = useCallback((taskId, direction) => {
     hasLocalEditsRef.current = true;
     setTasks((prev) => {
@@ -480,6 +532,7 @@ export default function PlannerPage() {
         plannerDoc,
         {
           tasks,
+          modes,
           plannedBlocks,
           hourModes,
           updatedAt: new Date().toISOString(),
@@ -493,7 +546,7 @@ export default function PlannerPage() {
         });
     }, 500);
     return () => clearTimeout(timeout);
-  }, [db, hasLoaded, hourModes, plannedBlocks, tasks]);
+  }, [db, hasLoaded, hourModes, modes, plannedBlocks, tasks]);
 
   return (
     <main
@@ -515,6 +568,9 @@ export default function PlannerPage() {
           activeModeId={activeModeId}
           onModeChange={setActiveModeId}
           dbReady={Boolean(db)}
+          onModeNameChange={handleModeNameChange}
+          onAddMode={handleAddMode}
+          onRemoveMode={handleRemoveMode}
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">

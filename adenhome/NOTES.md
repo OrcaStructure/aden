@@ -49,6 +49,8 @@
 - Autogenerate schedules tasks as early as possible inside their mode windows.
 - Planned blocks display title + time range and a mode-colored stripe.
 - Task config includes Move up / Move down to reorder tasks.
+- Mode rail supports inline renaming and adding new modes (saved to Firestore).
+- Modes (except Personal) can be removed; tasks + hour modes fall back to Personal.
 - Planner state auto-saves to Firestore after changes.
 
 ## Behaviors to Add Later
@@ -75,7 +77,7 @@
 ## Firestore Wiring (Current)
 - Collection: planner
 - Document id: current
-- Stored fields: tasks, plannedBlocks, hourModes, updatedAt
+- Stored fields: tasks, modes, plannedBlocks, hourModes, updatedAt
 - Fetch on load; debounce-save on change (500ms).
 
 ## Ordering Design Goals
