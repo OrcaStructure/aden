@@ -47,6 +47,7 @@ export default function PlannerPage() {
   );
   const [autoAfterMove, setAutoAfterMove] = useState(false);
   const timelineScrollRef = useRef(null);
+  const hasAutoScrolledRef = useRef(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const hasLocalEditsRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -112,14 +113,18 @@ export default function PlannerPage() {
 
   useEffect(() => {
     const container = timelineScrollRef.current;
-    if (!container) {
+    if (!container || hasAutoScrolledRef.current) {
       return;
     }
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
     const target = Math.max(minutes * MINUTE_HEIGHT - 120, 0);
-    container.scrollTo({ top: target, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      container.scrollTo({ top: target, behavior: "auto" });
+      hasAutoScrolledRef.current = true;
+    });
   }, []);
+
 
   useEffect(() => {
     const updateTime = () => {
@@ -491,8 +496,14 @@ export default function PlannerPage() {
   }, [db, hasLoaded, hourModes, plannedBlocks, tasks]);
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <section className="mx-auto flex min-h-screen max-w-7xl gap-6 px-6 py-8">
+    <main
+      className="min-h-screen bg-black text-white"
+      style={{ overflowAnchor: "none" }}
+    >
+      <section
+        className="mx-auto flex min-h-screen max-w-7xl gap-6 px-6 py-8"
+        style={{ overflowAnchor: "none" }}
+      >
         <ModeRail
           modes={modes}
           activeModeId={activeModeId}

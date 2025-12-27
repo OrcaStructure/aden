@@ -27,7 +27,7 @@ export default function PlannerHeader({ todayLabel, saveStatus }) {
             Auto-plan will honor the active mode windows.
           </p>
           <span
-            className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.2em] ${
+            className={`inline-flex min-w-[110px] justify-center rounded-full border px-3 py-1 text-xs uppercase tracking-[0.2em] ${
               statusTone[saveStatus] || statusTone.idle
             }`}
           >
