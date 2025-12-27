@@ -1,6 +1,16 @@
 "use client";
 
-export default function TaskConfig({ selectedTask, modes, onTaskUpdate }) {
+export default function TaskConfig({
+  selectedTask,
+  modes,
+  onTaskUpdate,
+  onDeadlineChange,
+  deadlineTime,
+  onTaskComplete,
+  onMoveTask,
+  canMoveUp,
+  canMoveDown,
+}) {
   return (
     <aside className="hidden w-[320px] shrink-0 xl:block">
       <div className="sticky top-8 rounded-2xl border border-gray-800 bg-gray-950 p-6">
@@ -21,6 +31,45 @@ export default function TaskConfig({ selectedTask, modes, onTaskUpdate }) {
                 <p className="text-xs text-gray-500">
                   {selectedTask.duration} min · {selectedTask.mode}
                 </p>
+                {selectedTask.completed ? (
+                  <span className="mt-3 inline-flex rounded-full bg-emerald-500/15 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-200">
+                    Completed
+                  </span>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onTaskComplete(selectedTask.id)}
+                      className="inline-flex rounded-full border border-emerald-400/60 px-3 py-1 text-xs uppercase tracking-[0.2em] text-emerald-200 hover:border-emerald-300"
+                    >
+                      Mark complete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMoveTask(selectedTask.id, "up")}
+                      disabled={!canMoveUp}
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.2em] ${
+                        canMoveUp
+                          ? "border-gray-700 text-gray-200 hover:border-gray-500"
+                          : "border-gray-900 text-gray-600 cursor-not-allowed"
+                      }`}
+                    >
+                      Move up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onMoveTask(selectedTask.id, "down")}
+                      disabled={!canMoveDown}
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.2em] ${
+                        canMoveDown
+                          ? "border-gray-700 text-gray-200 hover:border-gray-500"
+                          : "border-gray-900 text-gray-600 cursor-not-allowed"
+                      }`}
+                    >
+                      Move down
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="grid gap-3">
                 <div className="space-y-2">
@@ -54,11 +103,9 @@ export default function TaskConfig({ selectedTask, modes, onTaskUpdate }) {
                   <input
                     id="task-deadline"
                     type="time"
-                    value={selectedTask.deadline}
+                    value={deadlineTime}
                     onChange={(event) =>
-                      onTaskUpdate(selectedTask.id, {
-                        deadline: event.target.value,
-                      })
+                      onDeadlineChange(selectedTask.id, event.target.value)
                     }
                     className="w-full rounded-xl border border-gray-800 bg-black px-3 py-2 text-sm text-white focus:border-gray-500 focus:outline-none"
                   />

@@ -36,6 +36,7 @@
 - activeModeId: current mode for new tasks and default schedule context.
 - selectedTaskId: drives the Task Config panel and highlights.
 - currentMinutes: updates every minute to draw the “now” line.
+- hourModes: 24-length array of mode ids (1 per hour) to define mode windows.
 
 ## UI Behaviors Today
 - Clicking an unscheduled task selects it.
@@ -46,27 +47,43 @@
 - Hour mode column lets you assign the active mode to a specific hour.
 - Mode windows tint the day plan background for the active ranges.
 - Autogenerate schedules tasks as early as possible inside their mode windows.
+- Planned blocks display title + time range and a mode-colored stripe.
+- Task config includes Move up / Move down to reorder tasks.
+- Planner state auto-saves to Firestore after changes.
 
 ## Behaviors to Add Later
 - Create/select day-plan ranges to assign mode windows.
 - Improve range editing (drag to paint multiple hours).
-- Autogenerate places tasks into matching mode windows.
+- Autogenerate places tasks into matching mode windows while honoring user order.
 - Firebase reads/writes for tasks and plan blocks.
 - Ensure tasks cannot be both scheduled and unscheduled at the same time.
 - Persist and display mode windows so the auto-plan respects them.
 
 ## Data Concepts (Draft)
-- Task: id, title, duration, mode, deadline, status.
+- Task: id, title, duration, mode, deadlineAt (YYYY-MM-DDTHH:mm), order, status.
 - Plan block: id, taskId, startMinutes, endMinutes, mode.
 - Mode window: id, mode, startMinutes, endMinutes.
 
 ## Autogenerate Logic (Current)
 - Uses mode windows derived from the hour column.
-- Sorts tasks by earliest deadline, then shortest duration.
-- For each task, finds the earliest available slot in matching mode windows.
+- Uses the current task list order as the primary ordering constraint.
+- For each task (in order), finds the earliest available slot in matching mode windows.
 - Only schedules tasks in the future (no slots before the current time).
 - Respects deadline time when provided; skips tasks that cannot fit.
 - Replaces the entire plan each time it runs.
+
+## Firestore Wiring (Current)
+- Collection: planner
+- Document id: current
+- Stored fields: tasks, plannedBlocks, hourModes, updatedAt
+- Fetch on load; debounce-save on change (500ms).
+
+## Ordering Design Goals
+- Users define a rough order by moving tasks up/down (no manual numbering).
+- Autogenerate keeps tasks as close as possible to that order.
+- Constraints (mode windows, deadlines, current time) can skip tasks.
+- Re-running autogenerate should feel stable unless constraints change.
+- Task order is stored on each task (`order`) and is scoped per mode.
 
 ## Scaling Plan (When Ready)
 ## Component Split (Done)
