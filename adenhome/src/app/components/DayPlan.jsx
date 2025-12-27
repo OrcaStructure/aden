@@ -24,10 +24,10 @@ export default function DayPlan({
   scrollRef,
 }) {
   return (
-    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
+    <div className="rounded-2xl border border-[#2A261E] bg-[#14130F] p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Day Plan</h2>
-        <span className="text-xs uppercase tracking-[0.2em] text-gray-500">
+        <span className="text-xs uppercase tracking-[0.2em] text-[#9E957F]">
           Default: {activeModeName || "Personal"}
         </span>
       </div>
@@ -37,7 +37,7 @@ export default function DayPlan({
             {timelineHours.map((label, index) => (
               <div
                 key={`${label}-${index}`}
-                className="absolute left-0 text-[10px] uppercase tracking-[0.2em] text-gray-500"
+                className="absolute left-0 text-[10px] uppercase tracking-[0.2em] text-[#9E957F]"
                 style={{ top: index * 60 * minuteHeight - 6 }}
               >
                 {label}
@@ -52,7 +52,7 @@ export default function DayPlan({
                   key={`mode-${index}`}
                   type="button"
                   onClick={() => onHourModeChange(index)}
-                  className={`absolute left-0 right-0 rounded-md border border-gray-900 ${
+                  className={`absolute left-0 right-0 rounded-md border border-[#1A1712] ${
                     mode ? mode.color : "bg-gray-800"
                   }`}
                   style={{
@@ -65,13 +65,13 @@ export default function DayPlan({
             })}
           </div>
           <div
-            className="relative flex-1 rounded-2xl border border-gray-800 bg-black"
+            className="relative flex-1 rounded-2xl border border-[#2A261E] bg-[#10100C]"
             style={{ height: timelineHeight }}
           >
             {modeWindows.map((window) => (
               <div
                 key={window.id}
-                className={`absolute left-0 right-0 opacity-15 ${window.color}`}
+                className={`absolute left-0 right-0 opacity-25 ${window.color}`}
                 style={{
                   top: window.startMinutes * minuteHeight,
                   height: (window.endMinutes - window.startMinutes) * minuteHeight,
@@ -81,7 +81,7 @@ export default function DayPlan({
             {timelineHours.slice(0, 24).map((_, index) => (
               <div
                 key={`grid-${index}`}
-                className="absolute left-0 right-0 border-t border-gray-900"
+                className="absolute left-0 right-0 border-t border-[#1A1712]"
                 style={{ top: index * 60 * minuteHeight }}
               />
             ))}
@@ -91,8 +91,8 @@ export default function DayPlan({
                 onClick={() => onSelectTask(block.taskId)}
                 className={`absolute left-4 right-4 rounded-xl border p-3 text-xs ${
                   selectedTaskId === block.taskId
-                    ? "border-white bg-gray-100 text-black"
-                    : "border-gray-700 bg-gray-900/80 text-white"
+                    ? "border-[#E4A949] bg-[#E4A949] text-[#1A140C]"
+                    : "border-[#3A3428] bg-[#1C1B14]/80 text-[#F7F3E8]"
                 }`}
                 style={{
                   top: block.startMinutes * minuteHeight,
@@ -102,7 +102,7 @@ export default function DayPlan({
                 <div
                   className={`absolute left-2 top-2 bottom-2 w-1 rounded-full ${
                     modes.find((mode) => mode.name === block.mode)?.color ||
-                    "bg-gray-600"
+                    "bg-[#6C6352]"
                   }`}
                 />
                 <div className="ml-4 flex items-baseline justify-between gap-3">
@@ -118,11 +118,11 @@ export default function DayPlan({
               className="absolute left-0 right-0 z-10 flex items-center gap-2"
               style={{ top: currentMinutes * minuteHeight }}
             >
-              <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <div className="h-px flex-1 bg-emerald-400/70" />
-              <span className="text-[11px] text-emerald-300">now</span>
+              <div className="h-2 w-2 rounded-full bg-[#E4A949]" />
+              <div className="h-px flex-1 bg-[#E4A949]/70" />
+              <span className="text-[11px] text-[#F1D79A]">now</span>
             </div>
-            <div className="absolute inset-x-4 bottom-4 rounded-xl border border-dashed border-gray-700 p-3 text-xs text-gray-500">
+            <div className="absolute inset-x-4 bottom-4 rounded-xl border border-dashed border-[#3A3428] p-3 text-xs text-[#9E957F]">
               Drag to define mode ranges. Tasks will slot into matching blocks.
             </div>
           </div>

@@ -497,8 +497,14 @@ export default function PlannerPage() {
 
   return (
     <main
-      className="min-h-screen bg-black text-white"
-      style={{ overflowAnchor: "none" }}
+      className="min-h-screen text-[#F7F3E8]"
+      style={{
+        overflowAnchor: "none",
+        backgroundImage:
+          "radial-gradient(circle at top, rgba(228,169,73,0.12), transparent 55%), linear-gradient(135deg, #0f1410, #14100c 55%, #0b0c09)",
+        fontFamily:
+          '"Space Grotesk", "Montserrat", "Trebuchet MS", sans-serif',
+      }}
     >
       <section
         className="mx-auto flex min-h-screen max-w-7xl gap-6 px-6 py-8"

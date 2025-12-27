@@ -16,14 +16,14 @@ export default function PlannerHeader({ todayLabel, saveStatus }) {
   };
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-gray-950 p-6">
+    <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#2A261E] bg-[#14130F] p-6">
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-gray-500">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#9E957F]">
           Firebase Planner
         </p>
         <h1 className="text-3xl font-semibold">Daily Plan</h1>
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-gray-400">
+          <p className="text-[#B9B1A0]">
             Auto-plan will honor the active mode windows.
           </p>
           <span
@@ -35,8 +35,8 @@ export default function PlannerHeader({ todayLabel, saveStatus }) {
           </span>
         </div>
       </div>
-      <div className="rounded-xl border border-gray-800 bg-black px-5 py-4">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">
+      <div className="rounded-xl border border-[#2A261E] bg-[#10100C] px-5 py-4">
+        <p className="text-xs uppercase tracking-[0.25em] text-[#9E957F]">
           Today
         </p>
         <p className="text-xl font-semibold">
