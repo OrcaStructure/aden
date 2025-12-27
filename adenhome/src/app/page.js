@@ -60,6 +60,7 @@ export default function PlannerPage() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const hasLocalEditsRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState("idle");
+  const [calendarEvents, setCalendarEvents] = useState([]);
 
   const db = useMemo(() => getFirestore(app), []);
 
@@ -118,6 +119,22 @@ export default function PlannerPage() {
     };
     fetchPlanner();
   }, [db, dayKey]);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`/api/google/events?date=${dayKey}`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setCalendarEvents(Array.isArray(data.events) ? data.events : []);
+      } catch (error) {
+        console.warn("Failed to fetch Google Calendar events.", error);
+      }
+    };
+    fetchEvents();
+  }, [dayKey]);
 
   useEffect(() => {
     const container = timelineScrollRef.current;
@@ -252,6 +269,26 @@ export default function PlannerPage() {
     []
   );
 
+  const subtractBusyIntervals = useCallback((intervals, busyIntervals) => {
+    let available = intervals;
+    busyIntervals.forEach((busy) => {
+      available = available.flatMap((interval) => {
+        if (busy.end <= interval.start || busy.start >= interval.end) {
+          return [interval];
+        }
+        const next = [];
+        if (busy.start > interval.start) {
+          next.push({ start: interval.start, end: busy.start });
+        }
+        if (busy.end < interval.end) {
+          next.push({ start: busy.end, end: interval.end });
+        }
+        return next;
+      });
+    });
+    return available;
+  }, []);
+
   const handleAutogenerate = useCallback(() => {
     hasLocalEditsRef.current = true;
     const remainingTasks = tasks.filter((task) => !task.completed);
@@ -263,6 +300,10 @@ export default function PlannerPage() {
     }
     const nowMinutes = currentMinutes;
     const availability = buildAvailabilityByMode(modeWindows, nowMinutes);
+    const busyIntervals = calendarEvents.map((event) => ({
+      start: event.startMinutes,
+      end: event.endMinutes,
+    }));
 
     const nextBlocks = [];
     modes.forEach((mode) => {
@@ -271,13 +312,17 @@ export default function PlannerPage() {
       if (!intervals || intervals.length === 0) {
         return;
       }
+      const freeIntervals = subtractBusyIntervals(intervals, busyIntervals);
+      if (freeIntervals.length === 0) {
+        return;
+      }
       modeTasks.forEach((task) => {
         const deadlineMinutes = parseTimeToMinutes(task.deadlineAt);
         if (deadlineMinutes !== null && deadlineMinutes <= nowMinutes) {
           return;
         }
-        for (let i = 0; i < intervals.length; i += 1) {
-          const slot = intervals[i];
+        for (let i = 0; i < freeIntervals.length; i += 1) {
+          const slot = freeIntervals[i];
           const start = slot.start;
           const end = start + task.duration;
           if (end > slot.end) {
@@ -296,7 +341,7 @@ export default function PlannerPage() {
           });
           slot.start = end;
           if (slot.start >= slot.end) {
-            intervals.splice(i, 1);
+            freeIntervals.splice(i, 1);
           }
           break;
         }
@@ -306,13 +351,14 @@ export default function PlannerPage() {
     setPlannedBlocks(nextBlocks);
   }, [
     buildAvailabilityByMode,
+    calendarEvents,
     currentMinutes,
     modeWindows,
     modes,
     parseTimeToMinutes,
     selectedTaskId,
-    modes,
     getModeOrderedTasks,
+    subtractBusyIntervals,
     tasks,
   ]);
 
@@ -592,6 +638,7 @@ export default function PlannerPage() {
             modes={modes}
             onHourModeChange={handleHourModeChange}
             modeWindows={modeWindows}
+            calendarEvents={calendarEvents}
             plannedBlocks={plannedBlocks}
             selectedTaskId={selectedTaskId}
             onSelectTask={setSelectedTaskId}

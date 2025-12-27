@@ -17,6 +17,7 @@ export default function DayPlan({
   modes,
   onHourModeChange,
   modeWindows,
+  calendarEvents,
   plannedBlocks,
   selectedTaskId,
   onSelectTask,
@@ -77,6 +78,24 @@ export default function DayPlan({
                   height: (window.endMinutes - window.startMinutes) * minuteHeight,
                 }}
               />
+            ))}
+            {calendarEvents.map((event) => (
+              <div
+                key={event.id}
+                className="absolute left-3 right-3 rounded-xl border border-[#2B3A4B] bg-[#18212B]/90 p-3 text-xs text-[#C8D4E3]"
+                style={{
+                  top: event.startMinutes * minuteHeight,
+                  height: (event.endMinutes - event.startMinutes) * minuteHeight,
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-semibold">{event.title}</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#9FB4D6]">
+                    {formatMinutes(event.startMinutes)} -{" "}
+                    {formatMinutes(event.endMinutes)}
+                  </p>
+                </div>
+              </div>
             ))}
             {timelineHours.slice(0, 24).map((_, index) => (
               <div

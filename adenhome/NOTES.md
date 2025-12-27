@@ -51,6 +51,7 @@
 - Task config includes Move up / Move down to reorder tasks.
 - Mode rail supports inline renaming and adding new modes (saved to Firestore).
 - Modes (except Personal) can be removed; tasks + hour modes fall back to Personal.
+- Google Calendar events render as fixed timeline blocks (distinct color).
 - Planner state auto-saves to Firestore after changes.
 
 ## Behaviors to Add Later
@@ -60,6 +61,7 @@
 - Firebase reads/writes for tasks and plan blocks.
 - Ensure tasks cannot be both scheduled and unscheduled at the same time.
 - Persist and display mode windows so the auto-plan respects them.
+- Hard-block scheduling against Google Calendar events (now enabled in autogenerate).
 
 ## Data Concepts (Draft)
 - Task: id, title, duration, mode, deadlineAt (YYYY-MM-DDTHH:mm), order, status.
@@ -79,6 +81,18 @@
 - Document id: current
 - Stored fields: tasks, modes, plannedBlocks, hourModes, updatedAt
 - Fetch on load; debounce-save on change (500ms).
+
+## Google Calendar Integration (Current)
+- OAuth endpoints:
+  - `GET /api/google/auth`
+  - `GET /api/google/callback`
+  - `GET /api/google/events?date=YYYY-MM-DD`
+- Required env vars:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI`
+  - `GOOGLE_REFRESH_TOKEN`
+- Fetches today’s primary calendar events and returns minute offsets for layout.
 
 ## Ordering Design Goals
 - Users define a rough order by moving tasks up/down (no manual numbering).
