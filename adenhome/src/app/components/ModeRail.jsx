@@ -8,10 +8,15 @@ export default function ModeRail({
   onModeNameChange,
   onAddMode,
   onRemoveMode,
+  layout = "sidebar",
 }) {
+  const wrapperClass =
+    layout === "panel" ? "w-full" : "w-24 shrink-0";
+  const stickyClass = layout === "panel" ? "" : "sticky top-8";
+
   return (
-    <aside className="w-24 shrink-0">
-      <div className="sticky top-8 space-y-6">
+    <aside className={wrapperClass}>
+      <div className={`${stickyClass} space-y-6`}>
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-[#9E957F]">
           Modes

@@ -21,20 +21,31 @@ export default function DayPlan({
   plannedBlocks,
   selectedTaskId,
   onSelectTask,
+  onMoveTask,
+  moveAvailability,
   currentMinutes,
   scrollRef,
+  fillHeight = false,
 }) {
+  const scrollClass = fillHeight
+    ? "mt-4 flex-1 overflow-y-auto pr-2"
+    : "mt-4 max-h-[520px] overflow-y-auto pr-2";
+
   return (
-    <div className="rounded-2xl border border-[#2A261E] bg-[#14130F] p-6">
+    <div
+      className={`rounded-2xl border border-[#2A261E] bg-[#14130F] p-6 ${
+        fillHeight ? "flex min-h-0 flex-col" : ""
+      }`}
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Day Plan</h2>
         <span className="text-xs uppercase tracking-[0.2em] text-[#9E957F]">
           Default: {activeModeName || "Personal"}
         </span>
       </div>
-      <div ref={scrollRef} className="mt-4 max-h-[520px] overflow-y-auto pr-2">
-        <div className="flex gap-4">
-          <div className="relative w-16 shrink-0" style={{ height: timelineHeight }}>
+      <div ref={scrollRef} className={scrollClass}>
+        <div className="flex gap-3">
+          <div className="relative w-12 shrink-0" style={{ height: timelineHeight }}>
             {timelineHours.map((label, index) => (
               <div
                 key={`${label}-${index}`}
@@ -45,7 +56,7 @@ export default function DayPlan({
               </div>
             ))}
           </div>
-          <div className="relative w-8 shrink-0" style={{ height: timelineHeight }}>
+          <div className="relative w-6 shrink-0" style={{ height: timelineHeight }}>
             {hourModes.map((modeId, index) => {
               const mode = modes.find((item) => item.id === modeId);
               return (
@@ -124,6 +135,38 @@ export default function DayPlan({
                     "bg-[#6C6352]"
                   }`}
                 />
+                <div className="absolute right-2 top-2 flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMoveTask?.(block.taskId, "up");
+                    }}
+                    disabled={!moveAvailability?.get(block.taskId)?.canMoveUp}
+                    className={`h-6 w-6 rounded-full border text-[10px] ${
+                      moveAvailability?.get(block.taskId)?.canMoveUp
+                        ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
+                        : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
+                    }`}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMoveTask?.(block.taskId, "down");
+                    }}
+                    disabled={!moveAvailability?.get(block.taskId)?.canMoveDown}
+                    className={`h-6 w-6 rounded-full border text-[10px] ${
+                      moveAvailability?.get(block.taskId)?.canMoveDown
+                        ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
+                        : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
+                    }`}
+                  >
+                    ▼
+                  </button>
+                </div>
                 <div className="ml-4 flex items-baseline justify-between gap-3">
                   <p className="text-sm font-semibold">{block.title}</p>
                   <p className="text-[11px] uppercase tracking-[0.2em]">
@@ -137,9 +180,9 @@ export default function DayPlan({
               className="absolute left-0 right-0 z-10 flex items-center gap-2"
               style={{ top: currentMinutes * minuteHeight }}
             >
-              <div className="h-2 w-2 rounded-full bg-[#E4A949]" />
-              <div className="h-px flex-1 bg-[#E4A949]/70" />
-              <span className="text-[11px] text-[#F1D79A]">now</span>
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <div className="h-px flex-1 bg-emerald-400/70" />
+              <span className="text-[11px] text-emerald-300">now</span>
             </div>
             <div className="absolute inset-x-4 bottom-4 rounded-xl border border-dashed border-[#3A3428] p-3 text-xs text-[#9E957F]">
               Drag to define mode ranges. Tasks will slot into matching blocks.

@@ -10,10 +10,20 @@ export default function TaskConfig({
   onMoveTask,
   canMoveUp,
   canMoveDown,
+  layout = "sidebar",
 }) {
+  const wrapperClass =
+    layout === "panel"
+      ? "w-full"
+      : "hidden w-[320px] shrink-0 xl:block";
+  const containerClass =
+    layout === "panel"
+      ? "rounded-2xl border border-[#2A261E] bg-[#14130F] p-6"
+      : "sticky top-8 rounded-2xl border border-[#2A261E] bg-[#14130F] p-6";
+
   return (
-    <aside className="hidden w-[320px] shrink-0 xl:block">
-      <div className="sticky top-8 rounded-2xl border border-[#2A261E] bg-[#14130F] p-6">
+    <aside className={wrapperClass}>
+      <div className={containerClass}>
         <h2 className="text-lg font-semibold">Task Config</h2>
         <p className="text-sm text-[#9E957F]">
           Configure the task you just added or selected.

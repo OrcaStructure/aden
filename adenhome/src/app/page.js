@@ -61,6 +61,9 @@ export default function PlannerPage() {
   const hasLocalEditsRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [mobileView, setMobileView] = useState("plan");
+  const [plannerFocus, setPlannerFocus] = useState(false);
+  const swipeStartRef = useRef(null);
 
   const db = useMemo(() => getFirestore(app), []);
 
@@ -192,6 +195,34 @@ export default function PlannerPage() {
     setSelectedTaskId(newTask.id);
     setNewTaskTitle("");
   }, [activeMode?.name, newTaskTitle, tasks]);
+
+  const handleTouchStart = useCallback((event) => {
+    const touch = event.touches[0];
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((event) => {
+    const start = swipeStartRef.current;
+    if (!start) {
+      return;
+    }
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    swipeStartRef.current = null;
+    if (Math.abs(dy) > Math.abs(dx) + 20 && Math.abs(dy) > 60) {
+      setPlannerFocus(dy < 0);
+      return;
+    }
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) + 20) {
+      return;
+    }
+    const views = ["modes", "plan", "config"];
+    const currentIndex = views.indexOf(mobileView);
+    const nextIndex =
+      dx < 0 ? Math.min(currentIndex + 1, views.length - 1) : Math.max(currentIndex - 1, 0);
+    setMobileView(views[nextIndex]);
+  }, [mobileView]);
 
   const timelineHours = useMemo(
     () =>
@@ -495,6 +526,19 @@ export default function PlannerPage() {
         : [],
     [getModeOrderedTasks, orderedTasks, selectedTask]
   );
+  const moveAvailability = useMemo(() => {
+    const map = new Map();
+    modes.forEach((mode) => {
+      const list = getModeOrderedTasks(tasks, mode.name);
+      list.forEach((task, index) => {
+        map.set(task.id, {
+          canMoveUp: index > 0,
+          canMoveDown: index < list.length - 1,
+        });
+      });
+    });
+    return map;
+  }, [getModeOrderedTasks, modes, tasks]);
   const unscheduledTasks = useMemo(
     () => orderedTasks.filter((task) => !scheduledTaskIds.has(task.id)),
     [orderedTasks, scheduledTaskIds]
@@ -596,7 +640,7 @@ export default function PlannerPage() {
 
   return (
     <main
-      className="min-h-screen text-[#F7F3E8]"
+      className="h-[100svh] overflow-hidden text-[#F7F3E8] lg:min-h-screen lg:overflow-visible"
       style={{
         overflowAnchor: "none",
         backgroundImage:
@@ -606,28 +650,83 @@ export default function PlannerPage() {
       }}
     >
       <section
-        className="mx-auto flex min-h-screen max-w-7xl gap-6 px-6 py-8"
+        className="mx-auto flex h-full max-w-7xl flex-col gap-4 px-4 py-6 lg:min-h-screen lg:flex-row lg:gap-6 lg:px-6 lg:py-8"
         style={{ overflowAnchor: "none" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
-        <ModeRail
-          modes={modes}
-          activeModeId={activeModeId}
-          onModeChange={setActiveModeId}
-          dbReady={Boolean(db)}
-          onModeNameChange={handleModeNameChange}
-          onAddMode={handleAddMode}
-          onRemoveMode={handleRemoveMode}
-        />
+        <div className="flex items-center gap-2 rounded-full border border-[#2A261E] bg-[#14130F] p-1 text-xs uppercase tracking-[0.2em] text-[#9E957F] lg:hidden">
+          {[
+            { id: "modes", label: "Modes" },
+            { id: "plan", label: "Plan" },
+            { id: "config", label: "Config" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMobileView(tab.id)}
+              className={`flex-1 rounded-full px-3 py-2 text-center ${
+                mobileView === tab.id
+                  ? "bg-[#E4A949] text-[#1A140C]"
+                  : "text-[#9E957F]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <PlannerHeader todayLabel={todayLabel} saveStatus={saveStatus} />
-
-          <TaskStrip
-            tasks={unscheduledTasks}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={setSelectedTaskId}
-            onAutogenerate={handleAutogenerate}
+        <div className={mobileView === "modes" ? "block w-full lg:hidden" : "hidden lg:hidden"}>
+          <ModeRail
+            modes={modes}
+            activeModeId={activeModeId}
+            onModeChange={setActiveModeId}
+            dbReady={Boolean(db)}
+            onModeNameChange={handleModeNameChange}
+            onAddMode={handleAddMode}
+            onRemoveMode={handleRemoveMode}
+            layout="panel"
           />
+        </div>
+
+        <div className="hidden lg:block">
+          <ModeRail
+            modes={modes}
+            activeModeId={activeModeId}
+            onModeChange={setActiveModeId}
+            dbReady={Boolean(db)}
+            onModeNameChange={handleModeNameChange}
+            onAddMode={handleAddMode}
+            onRemoveMode={handleRemoveMode}
+          />
+        </div>
+
+        <div
+          className={`min-w-0 flex-1 flex-col gap-6 ${
+            mobileView === "plan" ? "flex h-full min-h-0" : "hidden lg:flex"
+          }`}
+        >
+          <div className="hidden lg:flex justify-end">
+            <button
+              type="button"
+              onClick={() => setPlannerFocus((prev) => !prev)}
+              className="rounded-full border border-[#5A4B2A] bg-[#201A10] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#F1D79A] hover:border-[#E4A949]"
+            >
+              {plannerFocus ? "Unfocus plan" : "Focus plan"}
+            </button>
+          </div>
+          <div className={plannerFocus ? "hidden" : ""}>
+            <PlannerHeader todayLabel={todayLabel} saveStatus={saveStatus} />
+          </div>
+
+          <div className={plannerFocus ? "hidden" : ""}>
+            <TaskStrip
+              tasks={unscheduledTasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={setSelectedTaskId}
+              onAutogenerate={handleAutogenerate}
+            />
+          </div>
 
           <DayPlan
             activeModeName={activeMode?.name}
@@ -639,42 +738,74 @@ export default function PlannerPage() {
             onHourModeChange={handleHourModeChange}
             modeWindows={modeWindows}
             calendarEvents={calendarEvents}
+            fillHeight={mobileView === "plan"}
             plannedBlocks={plannedBlocks}
             selectedTaskId={selectedTaskId}
             onSelectTask={setSelectedTaskId}
+            onMoveTask={handleMoveTask}
+            moveAvailability={moveAvailability}
             currentMinutes={currentMinutes}
             scrollRef={timelineScrollRef}
           />
 
-          <AddTaskBar
-            activeModeName={activeMode?.name}
-            newTaskTitle={newTaskTitle}
-            onTitleChange={(event) => setNewTaskTitle(event.target.value)}
-            onAddTask={handleAddTask}
+          <div className={plannerFocus ? "hidden" : ""}>
+            <AddTaskBar
+              activeModeName={activeMode?.name}
+              newTaskTitle={newTaskTitle}
+              onTitleChange={(event) => setNewTaskTitle(event.target.value)}
+              onAddTask={handleAddTask}
+            />
+          </div>
+        </div>
+
+        <div className={mobileView === "config" ? "block w-full lg:hidden" : "hidden lg:hidden"}>
+          <TaskConfig
+            selectedTask={selectedTask}
+            modes={modes}
+            onTaskUpdate={handleTaskUpdate}
+            onDeadlineChange={handleDeadlineChange}
+            deadlineTime={extractTime(selectedTask?.deadlineAt)}
+            onTaskComplete={handleTaskComplete}
+            onMoveTask={handleMoveTask}
+            canMoveUp={
+              selectedTask
+                ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) >
+                  0
+                : false
+            }
+            canMoveDown={
+              selectedTask
+                ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) <
+                  selectedModeTasks.length - 1
+                : false
+            }
+            layout="panel"
           />
         </div>
 
-        <TaskConfig
-          selectedTask={selectedTask}
-          modes={modes}
-          onTaskUpdate={handleTaskUpdate}
-          onDeadlineChange={handleDeadlineChange}
-          deadlineTime={extractTime(selectedTask?.deadlineAt)}
-          onTaskComplete={handleTaskComplete}
-          onMoveTask={handleMoveTask}
-          canMoveUp={
-            selectedTask
-              ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) >
-                0
-              : false
-          }
-          canMoveDown={
-            selectedTask
-              ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) <
-                selectedModeTasks.length - 1
-              : false
-          }
-        />
+        <div className="hidden lg:block">
+          <TaskConfig
+            selectedTask={selectedTask}
+            modes={modes}
+            onTaskUpdate={handleTaskUpdate}
+            onDeadlineChange={handleDeadlineChange}
+            deadlineTime={extractTime(selectedTask?.deadlineAt)}
+            onTaskComplete={handleTaskComplete}
+            onMoveTask={handleMoveTask}
+            canMoveUp={
+              selectedTask
+                ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) >
+                  0
+                : false
+            }
+            canMoveDown={
+              selectedTask
+                ? selectedModeTasks.findIndex((task) => task.id === selectedTask.id) <
+                  selectedModeTasks.length - 1
+                : false
+            }
+          />
+        </div>
       </section>
     </main>
   );

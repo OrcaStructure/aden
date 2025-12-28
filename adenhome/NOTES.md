@@ -52,6 +52,7 @@
 - Mode rail supports inline renaming and adding new modes (saved to Firestore).
 - Modes (except Personal) can be removed; tasks + hour modes fall back to Personal.
 - Google Calendar events render as fixed timeline blocks (distinct color).
+- Mobile: swipe or tap tabs to switch between Modes / Plan / Config; only the timeline scrolls.
 - Planner state auto-saves to Firestore after changes.
 
 ## Behaviors to Add Later
