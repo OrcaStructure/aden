@@ -18,7 +18,7 @@ export default function AddTaskBar({
             value={newTaskTitle}
             onChange={onTitleChange}
             placeholder={`Add a ${activeModeName || "Personal"} task...`}
-            className="w-full rounded-xl border border-[#2A261E] bg-[#10100C] px-4 py-3 text-sm text-[#F7F3E8] focus:border-[#E4A949] focus:outline-none"
+            className="w-full rounded-xl border border-[#2A261E] bg-[#10100C] px-4 py-3 text-[16px] text-[#F7F3E8] focus:border-[#E4A949] focus:outline-none"
           />
         </div>
         <button

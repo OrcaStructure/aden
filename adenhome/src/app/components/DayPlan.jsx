@@ -43,7 +43,10 @@ export default function DayPlan({
           Default: {activeModeName || "Personal"}
         </span>
       </div>
-      <div ref={scrollRef} className={scrollClass}>
+      <div
+        ref={scrollRef}
+        className={`${scrollClass} overscroll-contain touch-pan-y`}
+      >
         <div className="flex gap-3">
           <div className="relative w-12 shrink-0" style={{ height: timelineHeight }}>
             {timelineHours.map((label, index) => (

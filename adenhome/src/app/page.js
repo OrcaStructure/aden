@@ -198,6 +198,11 @@ export default function PlannerPage() {
 
   const handleTouchStart = useCallback((event) => {
     const touch = event.touches[0];
+    const target = event.target;
+    if (target?.closest?.("[data-no-swipe]")) {
+      swipeStartRef.current = null;
+      return;
+    }
     swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
   }, []);
 
@@ -703,7 +708,9 @@ export default function PlannerPage() {
 
         <div
           className={`min-w-0 flex-1 flex-col gap-6 ${
-            mobileView === "plan" ? "flex h-full min-h-0" : "hidden lg:flex"
+            mobileView === "plan"
+              ? "flex h-full min-h-0 overflow-hidden"
+              : "hidden lg:flex"
           }`}
         >
           <div className="hidden lg:flex justify-end">
@@ -725,28 +732,31 @@ export default function PlannerPage() {
               selectedTaskId={selectedTaskId}
               onSelectTask={setSelectedTaskId}
               onAutogenerate={handleAutogenerate}
+              mobileScrollable
             />
           </div>
 
-          <DayPlan
-            activeModeName={activeMode?.name}
-            timelineHours={timelineHours}
-            timelineHeight={timelineHeight}
-            minuteHeight={MINUTE_HEIGHT}
-            hourModes={hourModes}
-            modes={modes}
-            onHourModeChange={handleHourModeChange}
-            modeWindows={modeWindows}
-            calendarEvents={calendarEvents}
-            fillHeight={mobileView === "plan"}
-            plannedBlocks={plannedBlocks}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={setSelectedTaskId}
-            onMoveTask={handleMoveTask}
-            moveAvailability={moveAvailability}
-            currentMinutes={currentMinutes}
-            scrollRef={timelineScrollRef}
-          />
+          <div className="flex-1 min-h-0">
+            <DayPlan
+              activeModeName={activeMode?.name}
+              timelineHours={timelineHours}
+              timelineHeight={timelineHeight}
+              minuteHeight={MINUTE_HEIGHT}
+              hourModes={hourModes}
+              modes={modes}
+              onHourModeChange={handleHourModeChange}
+              modeWindows={modeWindows}
+              calendarEvents={calendarEvents}
+              fillHeight={mobileView === "plan"}
+              plannedBlocks={plannedBlocks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={setSelectedTaskId}
+              onMoveTask={handleMoveTask}
+              moveAvailability={moveAvailability}
+              currentMinutes={currentMinutes}
+              scrollRef={timelineScrollRef}
+            />
+          </div>
 
           <div className={plannerFocus ? "hidden" : ""}>
             <AddTaskBar

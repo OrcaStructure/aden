@@ -5,9 +5,15 @@ export default function TaskStrip({
   selectedTaskId,
   onSelectTask,
   onAutogenerate,
+  mobileScrollable = false,
 }) {
   return (
-    <div className="rounded-2xl border border-[#2A261E] bg-[#14130F] p-4">
+    <div
+      data-no-swipe
+      className={`rounded-2xl border border-[#2A261E] bg-[#14130F] p-4 ${
+        mobileScrollable ? "max-h-[30vh] overflow-y-auto overscroll-contain" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Unscheduled Tasks</h2>
