@@ -18,7 +18,7 @@ export default function ModeRail({
     <aside className={wrapperClass}>
       <div className={`${stickyClass} space-y-6`}>
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#9E957F]">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#7FA5AE]">
           Modes
         </p>
         <div className="space-y-3">
@@ -27,8 +27,8 @@ export default function ModeRail({
               key={mode.id}
               className={`rounded-xl border px-2 py-2 ${
                 activeModeId === mode.id
-                  ? "border-[#E4A949] bg-[#201A10]"
-                  : "border-[#2E2A22] bg-[#14130F]"
+                  ? "border-[#2CB8C8] bg-[#0F2630]"
+                  : "border-[#2E2A22] bg-[#0B1B24]"
               }`}
             >
               <button
@@ -36,8 +36,8 @@ export default function ModeRail({
                 onClick={() => onModeChange(mode.id)}
                 className={`w-full rounded-lg px-2 py-2 text-[11px] uppercase tracking-[0.2em] ${
                   activeModeId === mode.id
-                    ? "bg-[#E4A949] text-[#1A140C]"
-                    : "text-[#BFB6A2] hover:bg-[#201A10]"
+                    ? "bg-[#2CB8C8] text-[#03161B]"
+                    : "text-[#BFB6A2] hover:bg-[#0F2630]"
                 }`}
               >
                 {mode.name}
@@ -47,7 +47,7 @@ export default function ModeRail({
                 onChange={(event) =>
                   onModeNameChange(mode.id, event.target.value)
                 }
-                className="mt-2 w-full rounded-lg border border-[#2A261E] bg-[#10100C] px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-[#E7E0D2] focus:border-[#E4A949] focus:outline-none"
+                className="mt-2 w-full rounded-lg border border-[#1B2C36] bg-[#08141C] px-2 py-1 text-[11px] uppercase tracking-[0.18em] text-[#D3EEF2] focus:border-[#2CB8C8] focus:outline-none"
                 aria-label={`Rename ${mode.name}`}
               />
               {mode.name !== "Personal" && (
@@ -65,12 +65,12 @@ export default function ModeRail({
         <button
           type="button"
           onClick={onAddMode}
-          className="w-full rounded-xl border border-dashed border-[#5A4B2A] px-2 py-2 text-[11px] uppercase tracking-[0.2em] text-[#F1D79A] hover:border-[#E4A949]"
+          className="w-full rounded-xl border border-dashed border-[#1F3B46] px-2 py-2 text-[11px] uppercase tracking-[0.2em] text-[#6FE3E2] hover:border-[#2CB8C8]"
         >
           Add mode
         </button>
       </div>
-      <div className="rounded-2xl border border-[#2A261E] bg-[#14130F] p-4 text-xs text-[#9E957F]">
+      <div className="rounded-2xl border border-[#1B2C36] bg-[#0B1B24] p-4 text-xs text-[#7FA5AE]">
         <p className="uppercase tracking-[0.2em] text-[#7F7764]">Status</p>
         <p className="mt-2">db ready: {dbReady ? "yes" : "no"}</p>
       </div>

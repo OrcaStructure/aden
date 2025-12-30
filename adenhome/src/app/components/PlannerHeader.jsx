@@ -16,9 +16,9 @@ export default function PlannerHeader({ todayLabel, saveStatus }) {
   };
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#2A261E] bg-[#14130F] px-4 py-3">
+    <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#1B2C36] bg-[#0B1B24] px-4 py-3">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs uppercase tracking-[0.3em] text-[#9E957F]">
+        <span className="text-xs uppercase tracking-[0.3em] text-[#7FA5AE]">
           Today
         </span>
         <span className="text-sm font-semibold">

@@ -11,18 +11,18 @@ import TaskConfig from "./components/TaskConfig";
 import TaskStrip from "./components/TaskStrip";
 
 const INITIAL_MODES = [
-  { id: "m1", name: "Personal", color: "bg-slate-700" },
-  { id: "m2", name: "Work", color: "bg-emerald-700" },
-  { id: "m3", name: "Deep Focus", color: "bg-amber-700" },
+  { id: "m1", name: "Personal", color: "bg-teal-700" },
+  { id: "m2", name: "Work", color: "bg-blue-700" },
+  { id: "m3", name: "Deep Focus", color: "bg-cyan-700" },
 ];
 
 const MODE_COLORS = [
-  "bg-slate-700",
-  "bg-emerald-700",
-  "bg-amber-700",
-  "bg-rose-700",
+  "bg-teal-700",
+  "bg-cyan-700",
   "bg-sky-700",
-  "bg-lime-700",
+  "bg-blue-700",
+  "bg-emerald-700",
+  "bg-indigo-700",
 ];
 
 const MINUTE_HEIGHT = 2;
@@ -805,11 +805,11 @@ export default function PlannerPage() {
 
   return (
     <main
-      className="h-[100svh] overflow-hidden text-[#F7F3E8] lg:min-h-screen lg:overflow-visible"
+      className="h-[100svh] overflow-hidden text-[#E6F4F7] lg:min-h-screen lg:overflow-visible"
       style={{
         overflowAnchor: "none",
         backgroundImage:
-          "radial-gradient(circle at top, rgba(228,169,73,0.12), transparent 55%), linear-gradient(135deg, #0f1410, #14100c 55%, #0b0c09)",
+          "radial-gradient(circle at top, rgba(44,184,200,0.18), transparent 55%), linear-gradient(135deg, #061821, #0b2330 55%, #041118)",
         fontFamily:
           '"Space Grotesk", "Montserrat", "Trebuchet MS", sans-serif',
       }}
@@ -820,7 +820,7 @@ export default function PlannerPage() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="flex items-center gap-2 rounded-full border border-[#2A261E] bg-[#14130F] p-1 text-xs uppercase tracking-[0.2em] text-[#9E957F] lg:hidden">
+        <div className="flex items-center gap-2 rounded-full border border-[#1B2C36] bg-[#0B1B24] p-1 text-xs uppercase tracking-[0.2em] text-[#7FA5AE] lg:hidden">
           {[
             { id: "modes", label: "Modes" },
             { id: "plan", label: "Plan" },
@@ -832,8 +832,8 @@ export default function PlannerPage() {
               onClick={() => setMobileView(tab.id)}
               className={`flex-1 rounded-full px-3 py-2 text-center ${
                 mobileView === tab.id
-                  ? "bg-[#E4A949] text-[#1A140C]"
-                  : "text-[#9E957F]"
+                  ? "bg-[#2CB8C8] text-[#03161B]"
+                  : "text-[#7FA5AE]"
               }`}
             >
               {tab.label}
@@ -878,7 +878,7 @@ export default function PlannerPage() {
             <button
               type="button"
               onClick={() => setPlannerFocus((prev) => !prev)}
-              className="rounded-full border border-[#5A4B2A] bg-[#201A10] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#F1D79A] hover:border-[#E4A949]"
+              className="rounded-full border border-[#1F3B46] bg-[#0F2630] px-4 py-2 text-xs uppercase tracking-[0.2em] text-[#6FE3E2] hover:border-[#2CB8C8]"
             >
               {plannerFocus ? "Unfocus plan" : "Focus plan"}
             </button>
