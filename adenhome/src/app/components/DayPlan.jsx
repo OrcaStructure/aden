@@ -383,8 +383,49 @@ export default function DayPlan({
                         </div>
                       </>
                     )}
-                    {!showText && <div className="h-full" />}
-                  </div>
+                  {!showText && <div className="h-full" />}
+                </div>
+              );
+            })}
+            </div>
+            <div className="absolute inset-y-0 left-0 z-40 w-3 pointer-events-none">
+              {calendarEvents.map((event) => {
+                const tabHeight = Math.max(event.heightPx, 8);
+                const tabTop = event.topPx + (event.heightPx - tabHeight) / 2;
+                const isSelected = selectedEventId === event.id;
+                return (
+                  <button
+                    key={`tab-event-${event.id}`}
+                    type="button"
+                    onClick={() => onSelectEvent?.(event.id)}
+                    className={`absolute left-0 w-3 rounded-r-md border pointer-events-auto ${
+                      isSelected
+                        ? "border-[#9FB4D6] bg-[#2B3A4B]"
+                        : "border-[#2B3A4B] bg-[#18212B]/90 hover:bg-[#233040]"
+                    }`}
+                    style={{ top: tabTop, height: tabHeight }}
+                    aria-label={`Select ${event.title}`}
+                  />
+                );
+              })}
+              {plannedBlocks.map((block) => {
+                const tabHeight = Math.max(block.heightPx, 8);
+                const tabTop = block.topPx + (block.heightPx - tabHeight) / 2;
+                const modeColor =
+                  modes.find((mode) => mode.name === block.mode)?.color ||
+                  "bg-[#6C6352]";
+                const isSelected = selectedTaskId === block.taskId;
+                return (
+                  <button
+                    key={`tab-task-${block.id}`}
+                    type="button"
+                    onClick={() => onSelectTask(block.taskId)}
+                    className={`absolute left-0 w-3 rounded-r-md border pointer-events-auto ${
+                      isSelected ? "border-[#E4A949]" : "border-[#3A3428]"
+                    } ${modeColor}`}
+                    style={{ top: tabTop, height: tabHeight }}
+                    aria-label={`Select ${block.title}`}
+                  />
                 );
               })}
             </div>
