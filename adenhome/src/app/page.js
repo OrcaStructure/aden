@@ -49,6 +49,11 @@ const toDisplayRange = (
   }
   return { start, end };
 };
+const fromDisplayMinutes = (
+  displayMinutes,
+  dayStartMinutes = DAY_START_MINUTES,
+  dayMinutes = DAY_MINUTES
+) => (displayMinutes + dayStartMinutes) % dayMinutes;
 const toDisplayPixels = (
   startMinutes,
   endMinutes,
@@ -344,30 +349,36 @@ export default function PlannerPage() {
       return [];
     }
     const windows = [];
-    let currentModeId = hourModes[0];
-    let startHour = 0;
+    const dayStartHour = DAY_START_MINUTES / 60;
+    const getModeForDisplayHour = (displayIndex) =>
+      hourModes[(dayStartHour + displayIndex) % 24];
+    let currentModeId = getModeForDisplayHour(0);
+    let startDisplayHour = 0;
 
-    for (let hour = 1; hour <= 24; hour += 1) {
-      const modeId = hour < 24 ? hourModes[hour] : null;
+    for (let displayHour = 1; displayHour <= 24; displayHour += 1) {
+      const modeId = displayHour < 24 ? getModeForDisplayHour(displayHour) : null;
       if (modeId !== currentModeId) {
         const mode = modes.find((item) => item.id === currentModeId);
         if (mode) {
-          const display = toDisplayPixels(startHour * 60, hour * 60);
+          const displayStart = startDisplayHour * 60;
+          const displayEnd = displayHour * 60;
+          const startMinutes = fromDisplayMinutes(displayStart);
+          const endMinutes = fromDisplayMinutes(displayEnd);
           windows.push({
-            id: `window-${startHour}-${hour}`,
+            id: `window-${displayStart}-${displayEnd}`,
             modeId: currentModeId,
             label: mode.name,
             color: mode.color,
-            startMinutes: startHour * 60,
-            endMinutes: hour * 60,
-            displayStart: display.displayStart,
-            displayEnd: display.displayEnd,
-            topPx: display.topPx,
-            heightPx: display.heightPx,
+            startMinutes,
+            endMinutes,
+            displayStart,
+            displayEnd,
+            topPx: displayStart * MINUTE_HEIGHT,
+            heightPx: (displayEnd - displayStart) * MINUTE_HEIGHT,
           });
         }
         currentModeId = modeId;
-        startHour = hour;
+        startDisplayHour = displayHour;
       }
     }
 
@@ -429,8 +440,10 @@ export default function PlannerPage() {
     (windows, minStartMinutes) => {
       const availability = new Map();
       windows.forEach((window) => {
-        const start = Math.max(window.startMinutes, minStartMinutes);
-        if (start >= window.endMinutes) {
+        const windowStart = window.displayStart ?? window.startMinutes;
+        const windowEnd = window.displayEnd ?? window.endMinutes;
+        const start = Math.max(windowStart, minStartMinutes);
+        if (start >= windowEnd) {
           return;
         }
         if (!availability.has(window.modeId)) {
@@ -438,7 +451,7 @@ export default function PlannerPage() {
         }
         availability.get(window.modeId).push({
           start,
-          end: window.endMinutes,
+          end: windowEnd,
         });
       });
       availability.forEach((intervals) =>
@@ -478,11 +491,13 @@ export default function PlannerPage() {
         setSelectedTaskId(remainingTasks[0]?.id ?? null);
       }
     }
-    const nowMinutes = currentMinutes;
-    const availability = buildAvailabilityByMode(modeWindows, nowMinutes);
-    const busyIntervals = calendarEvents.map((event) => ({
-      start: event.startMinutes,
-      end: event.endMinutes,
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowDisplayMinutes = toDisplayMinutes(nowMinutes);
+    const availability = buildAvailabilityByMode(modeWindows, nowDisplayMinutes);
+    const busyIntervals = displayCalendarEvents.map((event) => ({
+      start: event.displayStart,
+      end: event.displayEnd,
     }));
 
     const nextBlocks = [];
@@ -498,7 +513,9 @@ export default function PlannerPage() {
       }
       modeTasks.forEach((task) => {
         const deadlineMinutes = parseTimeToMinutes(task.deadlineAt);
-        if (deadlineMinutes !== null && deadlineMinutes <= nowMinutes) {
+        const displayDeadline =
+          deadlineMinutes !== null ? toDisplayMinutes(deadlineMinutes) : null;
+        if (displayDeadline !== null && displayDeadline <= nowDisplayMinutes) {
           return;
         }
         for (let i = 0; i < freeIntervals.length; i += 1) {
@@ -508,15 +525,15 @@ export default function PlannerPage() {
           if (end > slot.end) {
             continue;
           }
-          if (deadlineMinutes !== null && end > deadlineMinutes) {
+          if (displayDeadline !== null && end > displayDeadline) {
             continue;
           }
           nextBlocks.push({
             id: `block-${task.id}-${start}`,
             taskId: task.id,
             title: task.title,
-            startMinutes: start,
-            endMinutes: end,
+            startMinutes: fromDisplayMinutes(start),
+            endMinutes: fromDisplayMinutes(end),
             mode: task.mode,
           });
           slot.start = end;
@@ -531,8 +548,7 @@ export default function PlannerPage() {
     setPlannedBlocks(nextBlocks);
   }, [
     buildAvailabilityByMode,
-    calendarEvents,
-    currentMinutes,
+    displayCalendarEvents,
     modeWindows,
     modes,
     parseTimeToMinutes,
