@@ -10,7 +10,7 @@
 - Main column includes:
   - Header with day info.
   - Horizontal scroll strip for unscheduled tasks (scheduled tasks are excluded).
-  - Continuous day plan timeline (24 hours) with placeholder blocks.
+- Continuous day plan timeline (24 hours) with placeholder blocks.
   - Sticky bottom input to add tasks.
 - Right column shows task config for the selected or newly added task.
 
@@ -53,6 +53,7 @@
 - Modes (except Personal) can be removed; tasks + hour modes fall back to Personal.
 - Google Calendar events render as fixed timeline blocks (distinct color).
 - Mobile: swipe or tap tabs to switch between Modes / Plan / Config; only the timeline scrolls.
+- Timeline displays a 4am → 4am day; underlying data still uses minutes-from-midnight for compatibility.
 - Planner state auto-saves to Firestore after changes.
 
 ## Behaviors to Add Later
@@ -76,6 +77,10 @@
 - Only schedules tasks in the future (no slots before the current time).
 - Respects deadline time when provided; skips tasks that cannot fit.
 - Replaces the entire plan each time it runs.
+
+## Timeline Window (Current)
+- Day view starts at 4am and wraps to 4am.
+- Rendering shifts positions without changing stored minute offsets.
 
 ## Firestore Wiring (Current)
 - Collection: planner
@@ -131,3 +136,6 @@
 - Mode names + colors?
 - How to select time ranges (drag to create, click to edit)?
 - Timeline scale (minute height / density)?
+
+## Recent Fixes
+- Day plan blocks now expand text as a visual overlay so selecting a short event/task no longer blocks clicks on blocks below; move arrows stay visible in the selected block header.

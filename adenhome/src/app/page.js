@@ -27,6 +27,41 @@ const MODE_COLORS = [
 
 const MINUTE_HEIGHT = 2;
 const DAY_MINUTES = 24 * 60;
+const DAY_START_MINUTES = 4 * 60;
+const toDisplayMinutes = (
+  minutes,
+  dayStartMinutes = DAY_START_MINUTES,
+  dayMinutes = DAY_MINUTES
+) => {
+  const shifted = minutes - dayStartMinutes;
+  return shifted < 0 ? shifted + dayMinutes : shifted;
+};
+const toDisplayRange = (
+  startMinutes,
+  endMinutes,
+  dayStartMinutes = DAY_START_MINUTES,
+  dayMinutes = DAY_MINUTES
+) => {
+  const start = toDisplayMinutes(startMinutes, dayStartMinutes, dayMinutes);
+  let end = toDisplayMinutes(endMinutes, dayStartMinutes, dayMinutes);
+  if (end <= start) {
+    end += dayMinutes;
+  }
+  return { start, end };
+};
+const toDisplayPixels = (
+  startMinutes,
+  endMinutes,
+  minuteHeight = MINUTE_HEIGHT
+) => {
+  const range = toDisplayRange(startMinutes, endMinutes);
+  return {
+    displayStart: range.start,
+    displayEnd: range.end,
+    topPx: range.start * minuteHeight,
+    heightPx: (range.end - range.start) * minuteHeight,
+  };
+};
 const DEFAULT_TASK_DURATION = 30;
 
 const formatDateKey = (date) =>
@@ -194,7 +229,9 @@ export default function PlannerPage() {
       }
       const now = new Date();
       const minutes = now.getHours() * 60 + now.getMinutes();
-      const target = Math.max(minutes * MINUTE_HEIGHT - 120, 0);
+      const shiftedMinutes =
+        (minutes - DAY_START_MINUTES + DAY_MINUTES) % DAY_MINUTES;
+      const target = Math.max(shiftedMinutes * MINUTE_HEIGHT - 120, 0);
       container.scrollTop = target;
       hasAutoScrolledRef.current = true;
     };
@@ -290,15 +327,18 @@ export default function PlannerPage() {
     setMobileView(views[nextIndex]);
   }, [mobileView, plannerFocus]);
 
-  const timelineHours = useMemo(
-    () =>
-      Array.from({ length: 25 }).map((_, index) => {
-        const hour = index % 12 || 12;
-        const suffix = index < 12 ? "AM" : "PM";
-        return `${hour} ${suffix}`;
-      }),
-    []
-  );
+  const timelineHours = useMemo(() => {
+    const startHour = Math.floor(DAY_START_MINUTES / 60);
+    return Array.from({ length: 25 }).map((_, index) => {
+      const hour24 = (startHour + index) % 24;
+      const hour = hour24 % 12 || 12;
+      const suffix = hour24 < 12 ? "AM" : "PM";
+      return {
+        label: `${hour} ${suffix}`,
+        storageIndex: hour24,
+      };
+    });
+  }, []);
 
   const modeWindows = useMemo(() => {
     if (!hourModes.length) {
@@ -313,6 +353,7 @@ export default function PlannerPage() {
       if (modeId !== currentModeId) {
         const mode = modes.find((item) => item.id === currentModeId);
         if (mode) {
+          const display = toDisplayPixels(startHour * 60, hour * 60);
           windows.push({
             id: `window-${startHour}-${hour}`,
             modeId: currentModeId,
@@ -320,6 +361,10 @@ export default function PlannerPage() {
             color: mode.color,
             startMinutes: startHour * 60,
             endMinutes: hour * 60,
+            displayStart: display.displayStart,
+            displayEnd: display.displayEnd,
+            topPx: display.topPx,
+            heightPx: display.heightPx,
           });
         }
         currentModeId = modeId;
@@ -329,6 +374,45 @@ export default function PlannerPage() {
 
     return windows;
   }, [hourModes, modes]);
+
+  const displayCalendarEvents = useMemo(
+    () =>
+      calendarEvents.map((event) => {
+        const display = toDisplayPixels(event.startMinutes, event.endMinutes);
+        return {
+          ...event,
+          displayStart: display.displayStart,
+          displayEnd: display.displayEnd,
+          topPx: display.topPx,
+          heightPx: display.heightPx,
+        };
+      }),
+    [calendarEvents]
+  );
+
+  const displayPlannedBlocks = useMemo(
+    () =>
+      plannedBlocks.map((block) => {
+        const display = toDisplayPixels(block.startMinutes, block.endMinutes);
+        return {
+          ...block,
+          displayStart: display.displayStart,
+          displayEnd: display.displayEnd,
+          topPx: display.topPx,
+          heightPx: display.heightPx,
+        };
+      }),
+    [plannedBlocks]
+  );
+
+  const currentDisplayMinutes = useMemo(
+    () => toDisplayMinutes(currentMinutes),
+    [currentMinutes]
+  );
+  const currentTopPx = useMemo(
+    () => currentDisplayMinutes * MINUTE_HEIGHT,
+    [currentDisplayMinutes]
+  );
 
   const parseTimeToMinutes = useCallback((value) => {
     if (!value) {
@@ -808,18 +892,20 @@ export default function PlannerPage() {
             modes={modes}
             onHourModeChange={handleHourModeChange}
             modeWindows={modeWindows}
-            calendarEvents={calendarEvents}
+            calendarEvents={displayCalendarEvents}
             selectedEventId={selectedEventId}
             onSelectEvent={setSelectedEventId}
             fillHeight={mobileView === "plan"}
-            plannedBlocks={plannedBlocks}
+            plannedBlocks={displayPlannedBlocks}
             selectedTaskId={selectedTaskId}
             onSelectTask={setSelectedTaskId}
             onMoveTask={handleMoveTask}
-              moveAvailability={moveAvailability}
-              currentMinutes={currentMinutes}
-              scrollRef={timelineScrollRef}
-            />
+            moveAvailability={moveAvailability}
+            currentMinutes={currentMinutes}
+            currentDisplayMinutes={currentDisplayMinutes}
+            currentTopPx={currentTopPx}
+            scrollRef={timelineScrollRef}
+          />
           </div>
 
           <div className={plannerFocus ? "hidden" : ""}>
