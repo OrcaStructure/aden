@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
 
-const clampMinutes = (value) => Math.min(Math.max(value, 0), 24 * 60);
-
-const toMinutes = (date) => date.getHours() * 60 + date.getMinutes();
-
 export async function GET(request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -78,26 +74,17 @@ export async function GET(request) {
   }
 
   const events = (eventsData.items || []).map((event) => {
-    const start = event.start?.dateTime
-      ? new Date(event.start.dateTime)
-      : event.start?.date
-      ? startOfDay
-      : null;
-    const end = event.end?.dateTime
-      ? new Date(event.end.dateTime)
-      : event.end?.date
-      ? endOfDay
-      : null;
+    const start = event.start?.dateTime || event.start?.date || null;
+    const end = event.end?.dateTime || event.end?.date || null;
     if (!start || !end) {
       return null;
     }
-    const startMinutes = clampMinutes(toMinutes(start));
-    const endMinutes = clampMinutes(toMinutes(end));
     return {
       id: event.id,
       title: event.summary || "Calendar event",
-      startMinutes,
-      endMinutes,
+      start,
+      end,
+      allDay: Boolean(event.start?.date),
     };
   });
 

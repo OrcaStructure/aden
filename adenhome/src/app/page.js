@@ -57,10 +57,12 @@ export default function PlannerPage() {
   const [autoAfterMove, setAutoAfterMove] = useState(false);
   const timelineScrollRef = useRef(null);
   const hasAutoScrolledRef = useRef(false);
+  const autoScrollAttemptsRef = useRef(0);
   const [hasLoaded, setHasLoaded] = useState(false);
   const hasLocalEditsRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [mobileView, setMobileView] = useState("plan");
   const [plannerFocus, setPlannerFocus] = useState(false);
   const swipeStartRef = useRef(null);
@@ -131,7 +133,38 @@ export default function PlannerPage() {
           return;
         }
         const data = await response.json();
-        setCalendarEvents(Array.isArray(data.events) ? data.events : []);
+        const toLocalDate = (value) => {
+          if (!value) {
+            return null;
+          }
+          if (value.includes("T")) {
+            return new Date(value);
+          }
+          const [year, month, day] = value.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        };
+        const events = Array.isArray(data.events)
+          ? data.events.map((event) => {
+              const start = toLocalDate(event.start);
+              const end = toLocalDate(event.end);
+              if (!start || !end) {
+                return null;
+              }
+              if (event.allDay) {
+                return {
+                  ...event,
+                  startMinutes: 0,
+                  endMinutes: 24 * 60,
+                };
+              }
+              return {
+                ...event,
+                startMinutes: start.getHours() * 60 + start.getMinutes(),
+                endMinutes: end.getHours() * 60 + end.getMinutes(),
+              };
+            })
+          : [];
+        setCalendarEvents(events.filter(Boolean));
       } catch (error) {
         console.warn("Failed to fetch Google Calendar events.", error);
       }
@@ -140,18 +173,33 @@ export default function PlannerPage() {
   }, [dayKey]);
 
   useEffect(() => {
-    const container = timelineScrollRef.current;
-    if (!container || hasAutoScrolledRef.current) {
+    if (mobileView === "plan") {
+      hasAutoScrolledRef.current = false;
+      autoScrollAttemptsRef.current = 0;
+    }
+  }, [mobileView, plannerFocus]);
+
+  useEffect(() => {
+    if (hasAutoScrolledRef.current || mobileView !== "plan") {
       return;
     }
-    const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    const target = Math.max(minutes * MINUTE_HEIGHT - 120, 0);
-    requestAnimationFrame(() => {
-      container.scrollTo({ top: target, behavior: "auto" });
+    const attemptScroll = () => {
+      const container = timelineScrollRef.current;
+      if (!container || container.scrollHeight <= container.clientHeight) {
+        autoScrollAttemptsRef.current += 1;
+        if (autoScrollAttemptsRef.current < 6) {
+          setTimeout(attemptScroll, 50);
+        }
+        return;
+      }
+      const now = new Date();
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const target = Math.max(minutes * MINUTE_HEIGHT - 120, 0);
+      container.scrollTop = target;
       hasAutoScrolledRef.current = true;
-    });
-  }, []);
+    };
+    attemptScroll();
+  }, [mobileView, plannerFocus]);
 
 
   useEffect(() => {
@@ -203,7 +251,7 @@ export default function PlannerPage() {
       swipeStartRef.current = null;
       return;
     }
-    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY, target };
   }, []);
 
   const handleTouchEnd = useCallback((event) => {
@@ -214,20 +262,33 @@ export default function PlannerPage() {
     const touch = event.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
+    const target = start.target;
     swipeStartRef.current = null;
-    if (Math.abs(dy) > Math.abs(dx) + 20 && Math.abs(dy) > 60) {
-      setPlannerFocus(dy < 0);
-      return;
+
+    const isVertical = Math.abs(dy) > Math.abs(dx) + 20;
+    if (isVertical && Math.abs(dy) > 60) {
+      const inPlanner = target?.closest?.("[data-planner]");
+      if (dy < 0 && !plannerFocus) {
+        setPlannerFocus(true);
+        return;
+      }
+      if (dy > 0 && plannerFocus && !inPlanner) {
+        setPlannerFocus(false);
+        return;
+      }
     }
+
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) + 20) {
       return;
     }
     const views = ["modes", "plan", "config"];
     const currentIndex = views.indexOf(mobileView);
     const nextIndex =
-      dx < 0 ? Math.min(currentIndex + 1, views.length - 1) : Math.max(currentIndex - 1, 0);
+      dx < 0
+        ? Math.min(currentIndex + 1, views.length - 1)
+        : Math.max(currentIndex - 1, 0);
     setMobileView(views[nextIndex]);
-  }, [mobileView]);
+  }, [mobileView, plannerFocus]);
 
   const timelineHours = useMemo(
     () =>
@@ -709,9 +770,10 @@ export default function PlannerPage() {
         <div
           className={`min-w-0 flex-1 flex-col gap-6 ${
             mobileView === "plan"
-              ? "flex h-full min-h-0 overflow-hidden"
+              ? "flex h-[100svh] min-h-0 overscroll-contain lg:h-full"
               : "hidden lg:flex"
           }`}
+          data-planner
         >
           <div className="hidden lg:flex justify-end">
             <button
@@ -737,21 +799,23 @@ export default function PlannerPage() {
           </div>
 
           <div className="flex-1 min-h-0">
-            <DayPlan
-              activeModeName={activeMode?.name}
-              timelineHours={timelineHours}
-              timelineHeight={timelineHeight}
-              minuteHeight={MINUTE_HEIGHT}
-              hourModes={hourModes}
-              modes={modes}
-              onHourModeChange={handleHourModeChange}
-              modeWindows={modeWindows}
-              calendarEvents={calendarEvents}
-              fillHeight={mobileView === "plan"}
-              plannedBlocks={plannedBlocks}
-              selectedTaskId={selectedTaskId}
-              onSelectTask={setSelectedTaskId}
-              onMoveTask={handleMoveTask}
+          <DayPlan
+            activeModeName={activeMode?.name}
+            timelineHours={timelineHours}
+            timelineHeight={timelineHeight}
+            minuteHeight={MINUTE_HEIGHT}
+            hourModes={hourModes}
+            modes={modes}
+            onHourModeChange={handleHourModeChange}
+            modeWindows={modeWindows}
+            calendarEvents={calendarEvents}
+            selectedEventId={selectedEventId}
+            onSelectEvent={setSelectedEventId}
+            fillHeight={mobileView === "plan"}
+            plannedBlocks={plannedBlocks}
+            selectedTaskId={selectedTaskId}
+            onSelectTask={setSelectedTaskId}
+            onMoveTask={handleMoveTask}
               moveAvailability={moveAvailability}
               currentMinutes={currentMinutes}
               scrollRef={timelineScrollRef}

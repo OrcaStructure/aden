@@ -18,6 +18,8 @@ export default function DayPlan({
   onHourModeChange,
   modeWindows,
   calendarEvents,
+  selectedEventId,
+  onSelectEvent,
   plannedBlocks,
   selectedTaskId,
   onSelectTask,
@@ -28,13 +30,13 @@ export default function DayPlan({
   fillHeight = false,
 }) {
   const scrollClass = fillHeight
-    ? "mt-4 flex-1 overflow-y-auto pr-2"
+    ? "mt-4 flex-1 min-h-0 overflow-y-auto pr-2"
     : "mt-4 max-h-[520px] overflow-y-auto pr-2";
 
   return (
     <div
       className={`rounded-2xl border border-[#2A261E] bg-[#14130F] p-6 ${
-        fillHeight ? "flex min-h-0 flex-col" : ""
+        fillHeight ? "flex h-full min-h-0 flex-col" : ""
       }`}
     >
       <div className="flex items-center justify-between">
@@ -45,9 +47,14 @@ export default function DayPlan({
       </div>
       <div
         ref={scrollRef}
+        data-no-swipe
         className={`${scrollClass} overscroll-contain touch-pan-y`}
+        style={{
+          WebkitOverflowScrolling: "touch",
+          height: fillHeight ? "100%" : undefined,
+        }}
       >
-        <div className="flex gap-3">
+        <div className="flex gap-3" style={{ minHeight: timelineHeight }}>
           <div className="relative w-12 shrink-0" style={{ height: timelineHeight }}>
             {timelineHours.map((label, index) => (
               <div
@@ -81,7 +88,7 @@ export default function DayPlan({
           </div>
           <div
             className="relative flex-1 rounded-2xl border border-[#2A261E] bg-[#10100C]"
-            style={{ height: timelineHeight }}
+            style={{ height: timelineHeight, minHeight: timelineHeight }}
           >
             {modeWindows.map((window) => (
               <div
@@ -93,24 +100,35 @@ export default function DayPlan({
                 }}
               />
             ))}
-            {calendarEvents.map((event) => (
-              <div
-                key={event.id}
-                className="absolute left-3 right-3 rounded-xl border border-[#2B3A4B] bg-[#18212B]/90 p-3 text-xs text-[#C8D4E3]"
-                style={{
-                  top: event.startMinutes * minuteHeight,
-                  height: (event.endMinutes - event.startMinutes) * minuteHeight,
-                }}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-semibold">{event.title}</p>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#9FB4D6]">
-                    {formatMinutes(event.startMinutes)} -{" "}
-                    {formatMinutes(event.endMinutes)}
-                  </p>
+            {calendarEvents.map((event) => {
+              const height = (event.endMinutes - event.startMinutes) * minuteHeight;
+              const isSelected = selectedEventId === event.id;
+              const showText = isSelected || height >= 40;
+              const displayHeight = isSelected ? Math.max(height, 32) : height;
+              return (
+                <div
+                  key={event.id}
+                  onClick={() => onSelectEvent?.(event.id)}
+                  className={`absolute left-3 right-3 rounded-xl border border-[#2B3A4B] bg-[#18212B]/90 text-xs text-[#C8D4E3] ${
+                    isSelected ? "z-30" : "z-10"
+                  } ${showText ? "px-2 py-1" : "p-1 overflow-hidden"}`}
+                  style={{
+                    top: event.startMinutes * minuteHeight,
+                    height: displayHeight,
+                  }}
+                >
+                  {showText && (
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-sm font-semibold">{event.title}</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#9FB4D6]">
+                        {formatMinutes(event.startMinutes)} -{" "}
+                        {formatMinutes(event.endMinutes)}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {timelineHours.slice(0, 24).map((_, index) => (
               <div
                 key={`grid-${index}`}
@@ -118,20 +136,25 @@ export default function DayPlan({
                 style={{ top: index * 60 * minuteHeight }}
               />
             ))}
-            {plannedBlocks.map((block) => (
-              <div
-                key={block.id}
-                onClick={() => onSelectTask(block.taskId)}
-                className={`absolute left-4 right-4 rounded-xl border p-3 text-xs ${
-                  selectedTaskId === block.taskId
-                    ? "border-[#E4A949] bg-[#E4A949] text-[#1A140C]"
-                    : "border-[#3A3428] bg-[#1C1B14]/80 text-[#F7F3E8]"
-                }`}
-                style={{
-                  top: block.startMinutes * minuteHeight,
-                  height: (block.endMinutes - block.startMinutes) * minuteHeight,
-                }}
-              >
+            {plannedBlocks.map((block) => {
+              const height = (block.endMinutes - block.startMinutes) * minuteHeight;
+              const isSelected = selectedTaskId === block.taskId;
+              const showText = isSelected || height >= 44;
+              const displayHeight = isSelected ? Math.max(height, 32) : height;
+              return (
+                <div
+                  key={block.id}
+                  onClick={() => onSelectTask(block.taskId)}
+                  className={`absolute left-4 right-4 rounded-xl border text-xs ${
+                    isSelected
+                      ? "border-[#E4A949] bg-[#E4A949] text-[#1A140C] z-30"
+                      : "border-[#3A3428] bg-[#1C1B14]/80 text-[#F7F3E8] z-20"
+                  } ${showText ? "px-2 py-1" : "p-1 overflow-hidden"}`}
+                  style={{
+                    top: block.startMinutes * minuteHeight,
+                    height: displayHeight,
+                  }}
+                >
                 <div
                   className={`absolute left-2 top-2 bottom-2 w-1 rounded-full ${
                     modes.find((mode) => mode.name === block.mode)?.color ||
@@ -170,15 +193,18 @@ export default function DayPlan({
                     ▼
                   </button>
                 </div>
-                <div className="ml-4 flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-semibold">{block.title}</p>
-                  <p className="text-[11px] uppercase tracking-[0.2em]">
-                    {formatMinutes(block.startMinutes)} -{" "}
-                    {formatMinutes(block.endMinutes)}
-                  </p>
-                </div>
+                {showText && (
+                  <div className="ml-4 flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-semibold">{block.title}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em]">
+                      {formatMinutes(block.startMinutes)} -{" "}
+                      {formatMinutes(block.endMinutes)}
+                    </p>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <div
               className="absolute left-0 right-0 z-10 flex items-center gap-2"
               style={{ top: currentMinutes * minuteHeight }}
