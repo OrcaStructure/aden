@@ -283,12 +283,50 @@ export default function DayPlan({
                           className={`absolute left-2 top-2 bottom-2 w-1 rounded-full ${modeColor}`}
                         />
                         <div className="ml-4 px-2 py-1">
-                          <div className="flex items-baseline justify-between gap-3 leading-tight">
-                            <p className="text-sm font-semibold">{block.title}</p>
-                            <p className="text-[11px] uppercase tracking-[0.2em]">
+                          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 leading-tight">
+                            <p className="min-w-0 truncate text-sm font-semibold">
+                              {block.title}
+                            </p>
+                            <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.2em]">
                               {formatMinutes(block.startMinutes)} -{" "}
                               {formatMinutes(block.endMinutes)}
                             </p>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onMoveTask?.(block.taskId, "up");
+                                }}
+                                disabled={
+                                  !moveAvailability?.get(block.taskId)?.canMoveUp
+                                }
+                                className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                                  moveAvailability?.get(block.taskId)?.canMoveUp
+                                    ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
+                                    : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
+                                }`}
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onMoveTask?.(block.taskId, "down");
+                                }}
+                                disabled={
+                                  !moveAvailability?.get(block.taskId)?.canMoveDown
+                                }
+                                className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                                  moveAvailability?.get(block.taskId)?.canMoveDown
+                                    ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
+                                    : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
+                                }`}
+                              >
+                                ▼
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -298,13 +336,15 @@ export default function DayPlan({
                         <div
                           className={`absolute left-2 top-2 bottom-2 w-1 rounded-full ${modeColor}`}
                         />
-                        <div className="ml-4 flex items-baseline justify-between gap-3 px-2 py-1 leading-tight">
-                          <p className="text-sm font-semibold">{block.title}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.2em]">
-                              {formatMinutes(block.startMinutes)} -{" "}
-                              {formatMinutes(block.endMinutes)}
-                            </p>
+                        <div className="ml-4 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-2 py-1 leading-tight">
+                          <p className="min-w-0 truncate text-sm font-semibold">
+                            {block.title}
+                          </p>
+                          <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.2em]">
+                            {formatMinutes(block.startMinutes)} -{" "}
+                            {formatMinutes(block.endMinutes)}
+                          </p>
+                          <div className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={(event) => {
@@ -342,42 +382,6 @@ export default function DayPlan({
                           </div>
                         </div>
                       </>
-                    )}
-                    {isExpanded && showText && (
-                      <div className="absolute right-2 top-1 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onMoveTask?.(block.taskId, "up");
-                          }}
-                          disabled={!moveAvailability?.get(block.taskId)?.canMoveUp}
-                          className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                            moveAvailability?.get(block.taskId)?.canMoveUp
-                              ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
-                              : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
-                          }`}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onMoveTask?.(block.taskId, "down");
-                          }}
-                          disabled={
-                            !moveAvailability?.get(block.taskId)?.canMoveDown
-                          }
-                          className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                            moveAvailability?.get(block.taskId)?.canMoveDown
-                              ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
-                              : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
-                          }`}
-                        >
-                          ▼
-                        </button>
-                      </div>
                     )}
                     {!showText && <div className="h-full" />}
                   </div>
