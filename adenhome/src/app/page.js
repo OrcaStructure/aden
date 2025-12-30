@@ -332,9 +332,8 @@ export default function PlannerPage() {
     return Array.from({ length: 25 }).map((_, index) => {
       const hour24 = (startHour + index) % 24;
       const hour = hour24 % 12 || 12;
-      const suffix = hour24 < 12 ? "AM" : "PM";
       return {
-        label: `${hour} ${suffix}`,
+        label: `${hour}`,
         storageIndex: hour24,
       };
     });

@@ -96,7 +96,7 @@ export default function DayPlan({
     : "mt-4 max-h-[520px] overflow-y-auto pr-2";
   return (
     <div
-      className={`rounded-2xl border border-[#2A261E] bg-[#14130F] p-6 ${
+      className={`-mx-4 w-[calc(100%+2rem)] rounded-none border border-[#2A261E] bg-[#14130F] p-4 lg:mx-0 lg:w-auto lg:rounded-2xl lg:p-6 ${
         fillHeight ? "flex h-full min-h-0 flex-col" : ""
       }`}
     >
@@ -116,18 +116,18 @@ export default function DayPlan({
         }}
       >
         <div className="flex gap-3" style={{ minHeight: timelineHeight }}>
-          <div className="relative w-12 shrink-0" style={{ height: timelineHeight }}>
+          <div className="relative w-8 shrink-0 lg:w-12" style={{ height: timelineHeight }}>
             {timelineHours.map((hour, index) => (
               <div
                 key={`${hour.label}-${index}`}
-                className="absolute left-0 text-[10px] uppercase tracking-[0.2em] text-[#9E957F]"
+                className="absolute left-0 text-[9px] uppercase tracking-[0.12em] text-[#9E957F] lg:text-[10px] lg:tracking-[0.2em]"
                 style={{ top: index * 60 * minuteHeight - 6 }}
               >
                 {hour.label}
               </div>
             ))}
           </div>
-          <div className="relative w-6 shrink-0" style={{ height: timelineHeight }}>
+          <div className="relative w-4 shrink-0 lg:w-6" style={{ height: timelineHeight }}>
             {timelineHours.slice(0, 24).map((hour, index) => {
               const modeId = hourModes[hour.storageIndex];
               const mode = modes.find((item) => item.id === modeId);
@@ -276,21 +276,26 @@ export default function DayPlan({
                           isSelected
                             ? "border-[#E4A949] bg-[#E4A949] text-[#1A140C]"
                             : "border-[#3A3428] bg-[#1C1B14]/80 text-[#F7F3E8]"
-                        } pointer-events-none`}
-                        style={{ height: displayHeight }}
+                        }`}
+                        style={{ minHeight: displayHeight }}
                       >
                         <div
                           className={`absolute left-2 top-2 bottom-2 w-1 rounded-full ${modeColor}`}
                         />
                         <div className="ml-4 px-2 py-1">
-                          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 leading-tight">
-                            <p className="min-w-0 truncate text-sm font-semibold">
+                          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-2 leading-tight">
+                            <p className="min-w-0 whitespace-normal text-sm font-semibold">
                               {block.title}
                             </p>
-                            <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.2em]">
-                              {formatMinutes(block.startMinutes)} -{" "}
-                              {formatMinutes(block.endMinutes)}
-                            </p>
+                            <div className="flex items-center gap-1 whitespace-nowrap text-[10px] uppercase tracking-[0.16em] lg:text-[11px] lg:tracking-[0.2em]">
+                              <span className="shrink-0">
+                                {formatMinutes(block.startMinutes)}
+                              </span>
+                              <span className="hidden sm:inline">-</span>
+                              <span className="hidden sm:inline">
+                                {formatMinutes(block.endMinutes)}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
@@ -301,7 +306,7 @@ export default function DayPlan({
                                 disabled={
                                   !moveAvailability?.get(block.taskId)?.canMoveUp
                                 }
-                                className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                                className={`rounded-full border px-1 py-0 text-[10px] ${
                                   moveAvailability?.get(block.taskId)?.canMoveUp
                                     ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
                                     : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
@@ -318,7 +323,7 @@ export default function DayPlan({
                                 disabled={
                                   !moveAvailability?.get(block.taskId)?.canMoveDown
                                 }
-                                className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                                className={`rounded-full border px-1 py-0 text-[10px] ${
                                   moveAvailability?.get(block.taskId)?.canMoveDown
                                     ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
                                     : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
@@ -340,10 +345,15 @@ export default function DayPlan({
                           <p className="min-w-0 truncate text-sm font-semibold">
                             {block.title}
                           </p>
-                          <p className="whitespace-nowrap text-[11px] uppercase tracking-[0.2em]">
-                            {formatMinutes(block.startMinutes)} -{" "}
-                            {formatMinutes(block.endMinutes)}
-                          </p>
+                          <div className="flex items-center gap-1 whitespace-nowrap text-[10px] uppercase tracking-[0.16em] lg:text-[11px] lg:tracking-[0.2em]">
+                            <span className="shrink-0">
+                              {formatMinutes(block.startMinutes)}
+                            </span>
+                            <span className="hidden sm:inline">-</span>
+                            <span className="hidden sm:inline">
+                              {formatMinutes(block.endMinutes)}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -354,7 +364,7 @@ export default function DayPlan({
                               disabled={
                                 !moveAvailability?.get(block.taskId)?.canMoveUp
                               }
-                              className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                              className={`rounded-full border px-1 py-0 text-[10px] ${
                                 moveAvailability?.get(block.taskId)?.canMoveUp
                                   ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
                                   : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
@@ -371,7 +381,7 @@ export default function DayPlan({
                               disabled={
                                 !moveAvailability?.get(block.taskId)?.canMoveDown
                               }
-                              className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                              className={`rounded-full border px-1 py-0 text-[10px] ${
                                 moveAvailability?.get(block.taskId)?.canMoveDown
                                   ? "border-[#3A3428] text-[#E1D9C7] hover:border-[#E4A949]"
                                   : "border-[#1A1712] text-[#6E6758] cursor-not-allowed"
@@ -430,7 +440,7 @@ export default function DayPlan({
               })}
             </div>
             <div
-              className="absolute left-0 right-0 z-10 flex items-center gap-2"
+              className="absolute left-0 right-0 z-50 flex items-center gap-2"
               style={{
                 top:
                   currentTopPx ??
