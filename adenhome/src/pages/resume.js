@@ -58,6 +58,13 @@ export default function Resume() {
           {/* Education */}
           <MainSection title="Education">
             <EduItem
+              degree="Sydney AI Safety Fellowship"
+              school="AI Safety ANZ"
+              years="2026"
+              details="Ongoing research into misalignment in multi-agent dynamics."
+            />
+
+            <EduItem
               degree="Bachelor of Philosophy (Honours) - Science"
               school="Australian National University"
               years="2022–2025"
