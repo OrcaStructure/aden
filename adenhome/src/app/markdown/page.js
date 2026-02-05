@@ -81,7 +81,7 @@ function renderMarkdown(markdown) {
 
 export default function MarkdownPage() {
   const [content, setContent] = useState("");
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle");
   const db = useMemo(() => getFirestore(app), []);
 
@@ -103,6 +103,7 @@ export default function MarkdownPage() {
         console.warn("Failed to load markdown content.", error);
       }
       setContent("# Markdown Notes\n\nStart writing here...");
+      setIsEditing(false);
     };
     fetchMarkdown();
   }, [db]);
