@@ -1,38 +1,112 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #efeee8;
+  --foreground: #111111;
+  --muted: #666666;
+  --line: #d8d8d1;
+  --sheet: #ffffff;
+  --link: #143a8b;
+  --link-hover: #9b1c1c;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display), serif;
+}
+
+main,
+section,
+article,
+aside,
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+.explicit-hover-link {
+  color: #143a8b !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.explicit-hover-link:hover {
+  color: #c1121f !important;
+  background-color: #ffe8e8;
+}
+
+button {
+  cursor: pointer;
+}
+
+textarea {
+  resize: vertical;
+}
+
+::selection {
+  background: #dcdcd4;
+}
+
+.a4-sheet {
+  min-height: 297mm;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1100px) {
+  .a4-sheet {
+    min-height: auto;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+@media print {
+  :root {
+    --background: #ffffff;
+  }
 
-html,
-body {
-  height: 100%;
-  overscroll-behavior: none;
-}
-
-@media (max-width: 1024px) {
   body {
-    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .a4-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .resume-builder {
+    padding: 0 !important;
+  }
+
+  .resume-sheet {
+    margin: 0 auto;
   }
 }
