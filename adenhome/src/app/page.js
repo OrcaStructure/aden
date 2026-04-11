@@ -59,7 +59,7 @@ export default async function HomePage() {
 
       <h1 className="text-3xl font-semibold">Aden Power</h1>
       <p className="mt-3">
-        AI safety researcher building a portfolio of publications, experiments, and technical work.
+        Hi, I'm currently working on various AI safety agendas.
       </p>
 
       <p className="mt-4">
