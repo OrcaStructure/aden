@@ -1,8 +1,27 @@
 import ManualResumeBuilder from "../components/resume/ManualResumeBuilder";
 import { loadResumeInventory } from "@/lib/resumeContent";
+import { siteName } from "@/lib/seo";
+
+const description =
+  "Interactive manual resume builder for selecting and composing tailored resume content.";
 
 export const metadata = {
-  title: "Aden Power | Manual Resume Builder",
+  title: "Manual Resume Builder",
+  description,
+  alternates: {
+    canonical: "/manual",
+  },
+  openGraph: {
+    type: "website",
+    url: "/manual",
+    title: `Manual Resume Builder | ${siteName}`,
+    description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Manual Resume Builder | ${siteName}`,
+    description,
+  },
 };
 
 function parseIds(value) {

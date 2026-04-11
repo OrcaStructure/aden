@@ -1,6 +1,14 @@
 import { Suspense } from "react";
 import LoginClient from "./LoginClient";
 
+export const metadata = {
+  title: "Login",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default function SiteLoginPage() {
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">

@@ -6,6 +6,14 @@ import DeliberateApp from "./DeliberateApp";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Deliberate",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default async function DeliberatePage() {
   const user = await getCurrentUser();
 
