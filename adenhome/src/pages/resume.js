@@ -21,7 +21,7 @@ export default function Resume() {
           <SectionTitle>Contact</SectionTitle>
           <div className="text-sm space-y-1 text-gray-700">
             <p>Email: adenpower.work@gmail.com</p>
-            <p>Phone: 0426 051 560</p>
+            <p>Phone: +61 426 051 560</p>
           </div>
 
           {/* Skills */}

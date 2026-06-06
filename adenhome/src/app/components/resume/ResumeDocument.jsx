@@ -17,7 +17,7 @@ const HARD_CODED_PROFILE = {
   name: "Aden Power",
   location: "Canberra, Australia",
   email: "adenpower.work@gmail.com",
-  phone: "0426051560",
+  phone: "+61426051560",
 };
 
 export default function ResumeDocument({ resume, label }) {
@@ -102,28 +102,6 @@ export default function ResumeDocument({ resume, label }) {
         </Section>
       ) : null}
 
-      {resume.projects?.length ? (
-        <Section title="Mathematical Writing">
-          <div className="space-y-2">
-            {resume.projects.map((project) => (
-              <div key={project.id} className="grid gap-2 md:grid-cols-[90px_1fr]">
-                <div className="text-xs leading-4 text-[var(--muted)]">{project.year}</div>
-                <div>
-                  <h3 className="text-sm leading-4 text-[var(--foreground)]">
-                    {project.title}
-                  </h3>
-                  {project.subtitle ? (
-                    <p className="text-xs leading-4 text-[var(--muted)]">
-                      {project.subtitle}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
       {resume.publications?.length ? (
         <Section title="Publications">
           <div className="space-y-2">
@@ -144,6 +122,28 @@ export default function ResumeDocument({ resume, label }) {
                   {publication.description ? (
                     <p className="text-xs leading-4 text-[var(--muted)]">
                       {publication.description}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
+      {resume.projects?.length ? (
+        <Section title="Mathematical Writing">
+          <div className="space-y-2">
+            {resume.projects.map((project) => (
+              <div key={project.id} className="grid gap-2 md:grid-cols-[90px_1fr]">
+                <div className="text-xs leading-4 text-[var(--muted)]">{project.year}</div>
+                <div>
+                  <h3 className="text-sm leading-4 text-[var(--foreground)]">
+                    {project.title}
+                  </h3>
+                  {project.subtitle ? (
+                    <p className="text-xs leading-4 text-[var(--muted)]">
+                      {project.subtitle}
                     </p>
                   ) : null}
                 </div>

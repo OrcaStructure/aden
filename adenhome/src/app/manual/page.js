@@ -35,14 +35,15 @@ function parseIds(value) {
 }
 
 export default async function ManualPage({ searchParams }) {
+  const resolvedSearchParams = await searchParams;
   const inventory = await loadResumeInventory();
   const initialSelection = {
-    experience: parseIds(searchParams?.experience),
-    projects: parseIds(searchParams?.projects),
-    publications: parseIds(searchParams?.publications),
-    education: parseIds(searchParams?.education),
-    skills: parseIds(searchParams?.skills),
-    awards: parseIds(searchParams?.awards),
+    experience: parseIds(resolvedSearchParams?.experience),
+    projects: parseIds(resolvedSearchParams?.projects),
+    publications: parseIds(resolvedSearchParams?.publications),
+    education: parseIds(resolvedSearchParams?.education),
+    skills: parseIds(resolvedSearchParams?.skills),
+    awards: parseIds(resolvedSearchParams?.awards),
   };
 
   return (

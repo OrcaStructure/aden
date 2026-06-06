@@ -11,7 +11,7 @@ export default function Resume() {
             <p className="text-gray-700"> Pedagogical Expertise in AI and Mathematics</p>
             <div className="text-sm text-gray-600 space-y-1">
               <p>Email: adenpower.work@gmail.com, aden.power@mllabs.com.au, aden@devlock.com.au</p>
-              <p>Phone: 0426 051 560</p>
+              <p>Phone: +61 426 051 560</p>
               <p>Location: Trellis Data, Canberra, Australia</p>
             </div>
           </header>
@@ -74,7 +74,7 @@ export default function Resume() {
             <SectionTitle>Contact</SectionTitle>
             <div className="text-sm space-y-1 text-gray-700">
               <p>Email: adenpower.work@gmail.com</p>
-              <p>Phone: 0426 051 560</p>
+              <p>Phone: +61 426 051 560</p>
             </div>
 
             {/* Skills */}

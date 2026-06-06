@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { cache } from "react";
 
 const CONTENT_PATH = path.join(process.cwd(), "content", "resume.md");
 const SECTION_NAMES = [
@@ -249,10 +250,10 @@ export function materializeResumeSelection(inventory, selection, prompt, metadat
   return result;
 }
 
-export async function loadResumeInventory() {
+export const loadResumeInventory = cache(async function loadResumeInventory() {
   const markdown = await readFile(CONTENT_PATH, "utf8");
   return parseMarkdownInventory(markdown);
-}
+});
 
 export function createInventoryPreview(inventory) {
   return {

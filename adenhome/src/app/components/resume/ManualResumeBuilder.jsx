@@ -8,8 +8,8 @@ import { savePrintResume } from "@/lib/printResumeStorage";
 
 const MANUAL_SECTIONS = [
   { key: "experience", title: "Experience" },
-  { key: "projects", title: "Mathematical Writing" },
   { key: "publications", title: "Publications" },
+  { key: "projects", title: "Mathematical Writing" },
   { key: "education", title: "Education" },
   { key: "skills", title: "Skills" },
   { key: "awards", title: "Awards" },
@@ -27,7 +27,7 @@ const HARD_CODED_PROFILE = {
   name: "Aden Power",
   location: "Canberra, Australia",
   email: "adenpower.work@gmail.com",
-  phone: "0426051560",
+  phone: "+61426051560",
 };
 
 function orderItems(allItems, selectedIds) {

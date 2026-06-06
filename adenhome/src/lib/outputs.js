@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { cache } from "react";
 
 const OUTPUTS_DIR = path.join(process.cwd(), "public", "outputs");
 const OUTPUTS_METADATA_PATH = path.join(process.cwd(), "content", "outputs.json");
@@ -72,7 +73,7 @@ function buildOutputRecord(filename, metadata = null) {
   };
 }
 
-export async function listOutputs() {
+export const listOutputs = cache(async function listOutputs() {
   try {
     const metadataByFilename = await loadOutputsMetadata();
     const entries = await fs.readdir(OUTPUTS_DIR, { withFileTypes: true });
@@ -98,7 +99,7 @@ export async function listOutputs() {
     }
     throw error;
   }
-}
+});
 
 export async function getOutputBySlug(slug) {
   const outputs = await listOutputs();

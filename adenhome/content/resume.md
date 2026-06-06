@@ -2,14 +2,14 @@
 
 ## profile
 - name: Aden Power
-- headline: Researcher in AI and Mathematics
-- location: Trellis Data, Canberra, Australia
-- email: adenpower.work@gmail.com, aden.power@mllabs.com.au, aden@devlock.com.au
-- phone: 0426 051 560
+- headline: AI Safety Researcher
+- location: Canberra, Australia
+- email: adenpower.work@gmail.com, aden@devlock.com.au
+- phone: +61 426 051 560
 
 ## summary
 ### profile-intro
-- text: I'm a machine learning and AI researcher, specialising in technical questions about the ever-advancing frontier of AI.
+- text: I'm trtying to make a diverse portfolio of AI safety bets, including theoretical and empirical ones.
 - tags: ai, research, machine-learning
 
 ### profile-question-1
@@ -41,11 +41,22 @@
 - tags: pedagogy, curriculum, ai, business
 
 ## experience
+
+### iliadfellow
+- title: Research Fellow
+- organization: Iliad x PBBSS
+- start: 2026
+- end: present
+- location: London
+- tags: ai, alignment, research
+- bullets:
+  - Researching agent foundations under the mentorship of Daniel Chiang
+
 ### spar
 - title: Research Fellow
 - organization: Supervised Program for Alignment Research
 - start: 2026
-- end: Present
+- end: 2026
 - location: Remote
 - tags: ai, alignment, research
 - bullets:
@@ -55,7 +66,7 @@
 - title: Research Fellow
 - organization: Sydney AI Safety Fellowship
 - start: 2026
-- end: present
+- end: 2026
 - location: Sydney
 - tags: ai, safety, research
 - bullets:
@@ -145,20 +156,22 @@
 
 ## publications
 ### apart-control-hackathon-steganography
-- title: Narrow Capabilites Could be Used for Perfect INformation Steganography
+- title: Narrow Capabilites Could be Used for Perfect Information Steganography
 - venue: Apart Control Hackathon
 - year: 2026
-- description: It was created for the apart control hackathon.
+- description: Theoretical control research conducted in one weekend.
 - tags: ai, safety, steganography, hackathon
 
 ## education
 
-### illiad
-- degree: Illiad Intensive
-- institution: Illiad x PBBSS
+### iliad
+- degree: Iliad Intensive
+- institution: Iliad x PBBSS
 - start: April 2026
 - end: May 2026
 - tags: mathematics, AI safety, science
+- details:
+  - Intensive study in mathematical topics in AI alignment at LISA.
 
 
 ### bphil
