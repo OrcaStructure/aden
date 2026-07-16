@@ -336,11 +336,24 @@ const STATUS_STYLE = {
   new: "text-sky-300 border-sky-900",
 };
 
-const SYNC_LABEL = {
-  ok: ["● synced", "text-emerald-400/80"],
-  auth: ["⚠ sync key needed", "text-amber-300/90"],
-  error: ["⚠ sync failing — progress is only on this device", "text-red-400/90"],
-};
+function syncLabel(sync) {
+  if (sync === "ok") return ["● synced", "text-emerald-400/80"];
+  if (sync === "auth") {
+    return getSyncKey()
+      ? [
+          "⚠ key rejected — the server expects a different key (copy just the value after HANZI_SYNC_KEY=)",
+          "text-amber-300/90",
+        ]
+      : ["⚠ sync key needed — paste it below", "text-amber-300/90"];
+  }
+  if (sync === "error") {
+    return [
+      "⚠ sync server unreachable or erroring — reviews stay on this device until it recovers (a key can't fix this)",
+      "text-red-400/90",
+    ];
+  }
+  return ["… checking", "text-neutral-500"];
+}
 
 function StatsView({
   state,
@@ -357,6 +370,7 @@ function StatsView({
   const [error, setError] = useState("");
   const [keyDraft, setKeyDraft] = useState(getSyncKey());
   const [copied, setCopied] = useState("");
+  const [keyFlash, setKeyFlash] = useState("");
   const deck = state.decks[state.cur];
   const data = deckData(deck);
   const rot = rotation(deck);
@@ -389,7 +403,7 @@ function StatsView({
     setTimeout(() => setCopied(""), 2000);
   };
 
-  const [syncText, syncClass] = SYNC_LABEL[sync] || ["… checking", "text-neutral-500"];
+  const [syncText, syncClass] = syncLabel(sync);
 
   return (
     <main className="min-h-dvh bg-neutral-950 text-neutral-100">
@@ -594,11 +608,16 @@ function StatsView({
               className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-neutral-600 w-48"
             />
             <button
-              onClick={() => onSaveSyncKey(keyDraft.trim())}
+              onClick={() => {
+                onSaveSyncKey(keyDraft.trim());
+                setKeyFlash("key saved — retrying sync…");
+                setTimeout(() => setKeyFlash(""), 3000);
+              }}
               className="px-3 py-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:border-neutral-500"
             >
               save key
             </button>
+            {keyFlash && <span className="text-neutral-400">{keyFlash}</span>}
             <button
               onClick={copyBackup}
               className="px-3 py-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:border-neutral-500"
@@ -990,7 +1009,8 @@ export default function HanziApp() {
         if (key) localStorage.setItem(SYNC_KEY_STORE, key);
         else localStorage.removeItem(SYNC_KEY_STORE);
       } catch {}
-      // re-touch state so the sync effect retries with the new key
+      // show "checking" until the retry resolves, then retry with the new key
+      setSync(null);
       if (state) commit({ ...state });
     },
     [state, commit]
