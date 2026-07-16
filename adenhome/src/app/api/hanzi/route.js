@@ -1,13 +1,51 @@
 // app/api/hanzi/route.js
 import { NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
-import "../../../lib/firebaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-const progressDoc = () => getFirestore().doc("hanzi/progress");
 const MAX_BYTES = 900_000; // stay under Firestore's 1 MiB doc limit
 const NO_STORE = { "Cache-Control": "no-store" };
+
+// firebase-admin throws at import when its env vars are absent, which would
+// turn every request into an opaque 500. Initialize lazily and report what
+// is actually wrong instead.
+async function progressDoc() {
+  const missing = [
+    "FIREBASE_PROJECT_ID",
+    "FIREBASE_CLIENT_EMAIL",
+    "FIREBASE_PRIVATE_KEY",
+  ].filter((k) => !process.env[k]);
+  if (missing.length) {
+    const err = new Error(
+      `Server is missing environment variables: ${missing.join(", ")}. ` +
+        "Add them (plus HANZI_SYNC_KEY) in Netlify and trigger a redeploy."
+    );
+    err.status = 503;
+    throw err;
+  }
+  try {
+    const [{ getFirestore }] = await Promise.all([
+      import("firebase-admin/firestore"),
+      import("../../../lib/firebaseAdmin"),
+    ]);
+    return getFirestore().doc("hanzi/progress");
+  } catch (e) {
+    const err = new Error(
+      "Firebase admin failed to initialize — check FIREBASE_PRIVATE_KEY formatting. " +
+        (e?.message || "")
+    );
+    err.status = 503;
+    throw err;
+  }
+}
+
+function errorResponse(error) {
+  const status = error?.status || 500;
+  return NextResponse.json(
+    { error: status === 503 ? error.message : "Internal server error" },
+    { status, headers: NO_STORE }
+  );
+}
 
 // If HANZI_SYNC_KEY is set, both reads and writes require the matching
 // x-sync-key header. Unset = open (local dev convenience).
@@ -108,15 +146,12 @@ export async function GET(request) {
     if (!authorized(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE });
     }
-    const snap = await progressDoc().get();
+    const snap = await (await progressDoc()).get();
     const doc = snap.exists ? fromStorage(snap.data()) : null;
     return NextResponse.json(doc, { headers: NO_STORE });
   } catch (error) {
     console.error("Error loading hanzi progress:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: NO_STORE }
-    );
+    return errorResponse(error);
   }
 }
 
@@ -145,7 +180,8 @@ export async function POST(request) {
       dead: Array.isArray(body.dead) ? body.dead.filter((x) => typeof x === "string") : [],
     };
 
-    const snap = await progressDoc().get();
+    const docRef = await progressDoc();
+    const snap = await docRef.get();
     const existing = snap.exists ? fromStorage(snap.data()) : null;
     const merged = mergeStates(existing, incoming);
 
@@ -153,14 +189,11 @@ export async function POST(request) {
     if (JSON.stringify(stored).length > MAX_BYTES) {
       return NextResponse.json({ error: "State too large" }, { status: 413, headers: NO_STORE });
     }
-    await progressDoc().set(stored);
+    await docRef.set(stored);
 
     return NextResponse.json({ status: "success", state: merged }, { headers: NO_STORE });
   } catch (error) {
     console.error("Error saving hanzi progress:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: NO_STORE }
-    );
+    return errorResponse(error);
   }
 }

@@ -359,6 +359,7 @@ function StatsView({
   state,
   recent,
   sync,
+  syncMsg,
   onSwitchDeck,
   onImportDeck,
   onDeleteDeck,
@@ -598,6 +599,9 @@ function StatsView({
         <div className="text-[11px] text-neutral-600 mb-2">sync</div>
         <div className="rounded-lg bg-neutral-900 border border-neutral-800 p-4 text-xs space-y-3">
           <div className={syncClass}>{syncText}</div>
+          {sync === "error" && syncMsg && (
+            <div className="text-neutral-500">server says: {syncMsg}</div>
+          )}
           <div className="flex gap-2 items-center flex-wrap">
             <input
               type="password"
@@ -703,6 +707,7 @@ export default function HanziApp() {
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState("review"); // "review" | "grid" | "stats"
   const [sync, setSync] = useState(null); // null | "ok" | "auth" | "error"
+  const [syncMsg, setSyncMsg] = useState(""); // server-provided detail for "error"
   const recentRef = useRef([]);
   const undoRef = useRef(null);
   const syncedRef = useRef(false);
@@ -748,9 +753,14 @@ export default function HanziApp() {
         }
         if (!res.ok) {
           setSync("error");
+          res
+            .json()
+            .then((b) => setSyncMsg(b?.error || ""))
+            .catch(() => setSyncMsg(""));
           return null;
         }
         setSync("ok");
+        setSyncMsg("");
         return res.json();
       })
       .then((remoteRaw) => {
@@ -793,9 +803,14 @@ export default function HanziApp() {
           }
           if (!res.ok) {
             setSync("error");
+            res
+              .json()
+              .then((b) => setSyncMsg(b?.error || ""))
+              .catch(() => setSyncMsg(""));
             return;
           }
           setSync("ok");
+          setSyncMsg("");
           lastPostOkRef.current = Date.now();
           const body = await res.json().catch(() => null);
           const merged = body?.state;
@@ -1086,6 +1101,7 @@ export default function HanziApp() {
         state={state}
         recent={recentRef.current}
         sync={sync}
+        syncMsg={syncMsg}
         onSwitchDeck={switchDeck}
         onImportDeck={importDeck}
         onDeleteDeck={deleteDeck}
