@@ -10,13 +10,11 @@ const START_POOL = 10;
 const EASY_MULT = 1.7;
 const EASY_CAP = 8;
 const HARD_MULT = 0.35;
-const HARD_FLOOR = 0.1;
-const MEDIUM_TARGET = 1.5; // medium pulls ease toward this (geometric mean)
 const NEW_WEIGHT = 2.5;
 const KNOWN_EASE = 1.5; // a card counts as "known" once its ease reaches this
-const GROW_AT = 0.6; // grow the pool when this fraction of the rotation is known
 const NO_REPEAT_WINDOW = 3;
-const GRID_HARD_BELOW = 0.5; // cards with ease under this show in the grid as "hard"
+const ENTRY_EASE = 1; // ease a card gets when tapped into rotation from the grid
+const DROP_BELOW = 0.5; // below this a card falls out of rotation, back to the grid
 
 const HANZI_FONT =
   '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
@@ -171,10 +169,11 @@ function card(deck, front) {
   return deck.cards[front] || { e: 1, n: 0 };
 }
 
-// The review rotation: the ordered pool prefix, plus any card adopted early
-// from the grid (card.a flag).
+// The review rotation: only cards adopted from the grid (card.a flag).
+// Nothing enters by default — unseen is the floor of the score scale, and
+// cards graded below DROP_BELOW fall back out of rotation.
 function rotation(deck) {
-  return deckData(deck).filter(([f], i) => i < deck.pool || card(deck, f).a);
+  return deckData(deck).filter(([f]) => card(deck, f).a);
 }
 
 function weightOf(deck, front) {
@@ -211,7 +210,6 @@ function statusOf(deck, front) {
   const c = card(deck, front);
   if (c.n === 0) return "new";
   if (c.e >= KNOWN_EASE) return "known";
-  if (c.e < GRID_HARD_BELOW) return "hard";
   return "learning";
 }
 
@@ -376,10 +374,16 @@ function StatsView({
   const data = deckData(deck);
   const rot = rotation(deck);
   const known = knownCount(deck);
-  const counts = { known: 0, learning: 0, hard: 0, new: 0 };
+  const counts = { known: 0, learning: 0, new: 0 };
   rot.forEach(([f]) => counts[statusOf(deck, f)]++);
-  const unseen = data.length - rot.length;
-  const knownFrac = rot.length ? known / rot.length : 0;
+  let dropped = 0;
+  let unseen = 0;
+  data.forEach(([f]) => {
+    const c = card(deck, f);
+    if (c.a) return;
+    if (c.n === 0) unseen += 1;
+    else dropped += 1;
+  });
 
   // live "what comes next" probabilities
   const avoid = new Set(recent.slice(-Math.min(NO_REPEAT_WINDOW, rot.length - 1)));
@@ -517,14 +521,13 @@ function StatsView({
             {counts.learning > 0 && (
               <div className="bg-neutral-500" style={{ flex: counts.learning }} />
             )}
-            {counts.hard > 0 && <div className="bg-red-500/70" style={{ flex: counts.hard }} />}
             {counts.new > 0 && <div className="bg-sky-500/70" style={{ flex: counts.new }} />}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-500">
             <span><span className="text-emerald-400">●</span> known {counts.known}</span>
             <span><span className="text-neutral-400">●</span> learning {counts.learning}</span>
-            <span><span className="text-red-400">●</span> hard {counts.hard}</span>
             <span><span className="text-sky-400">●</span> unrated {counts.new}</span>
+            <span className="text-red-400/80">dropped {dropped}</span>
             <span className="text-neutral-700">unseen {unseen}</span>
           </div>
         </div>
@@ -561,25 +564,19 @@ function StatsView({
         <div className="text-[11px] text-neutral-600 mb-2">algorithm</div>
         <div className="rounded-lg bg-neutral-900 border border-neutral-800 p-4 text-xs text-neutral-400 leading-relaxed space-y-2 mb-6">
           <p>
-            Cards are drawn at random, weighted by ease — the opposite of spaced
-            repetition: easy cards appear <em>more</em> often, hard ones fade.
-            Unrated cards get weight {NEW_WEIGHT}. The last {NO_REPEAT_WINDOW} shown
-            are excluded.
+            Unseen is the bottom of the scale — below the threshold to ever
+            appear. Cards enter reviews only when you tap them in the grid
+            (entry ease {ENTRY_EASE}). Reviews are drawn at random, weighted by
+            ease, so easy cards appear <em>more</em> often — the opposite of
+            spaced repetition. Freshly adopted cards get weight {NEW_WEIGHT}{" "}
+            until first graded; the last {NO_REPEAT_WINDOW} shown are excluded.
           </p>
           <p>
             <span className="text-emerald-400">easy</span> ×{EASY_MULT} (cap {EASY_CAP}) ·{" "}
-            <span className="text-amber-300">medium</span> drifts toward {MEDIUM_TARGET} ·{" "}
-            <span className="text-red-400">hard</span> ×{HARD_MULT} (floor {HARD_FLOOR}).
-            A maxed easy card appears {Math.round(EASY_CAP / HARD_FLOOR)}× more often
-            than a fully buried hard one.
-          </p>
-          <p>
-            The rotation grows when ≥{Math.round(GROW_AT * 100)}% of it is known
-            (ease ≥ {KNOWN_EASE}) — currently{" "}
-            <span className={knownFrac >= GROW_AT ? "text-emerald-400" : "text-neutral-200"}>
-              {Math.round(knownFrac * 100)}%
-            </span>{" "}
-            ({known} of {rot.length}).
+            <span className="text-amber-300">medium</span> holds position ·{" "}
+            <span className="text-red-400">hard</span> ×{HARD_MULT} — anything
+            pushed below {DROP_BELOW} drops out of reviews, back to the grid. A
+            card graded hard straight after adoption always drops.
           </p>
           <p className="text-neutral-500">
             most likely next:{" "}
@@ -642,9 +639,9 @@ function GridView({ deck, onPromote, onClose }) {
   const unseen = [];
   data.forEach(([f, h, b], i) => {
     const c = card(deck, f);
-    const inRot = i < deck.pool || c.a;
-    if (c.n === 0 && !inRot) unseen.push({ f, h, b, i });
-    else if (c.n > 0 && c.e < GRID_HARD_BELOW) hard.push({ f, h, b, e: c.e, i });
+    if (c.a) return; // in rotation
+    if (c.n === 0) unseen.push({ f, h, b, i });
+    else hard.push({ f, h, b, e: c.e, i }); // dropped out of rotation
   });
   hard.sort((a, b) => a.e - b.e || a.i - b.i);
 
@@ -875,11 +872,13 @@ export default function HanziApp() {
       if (kind === "easy") {
         c.e = Math.min(c.e * EASY_MULT, EASY_CAP);
       } else if (kind === "hard") {
-        c.e = Math.max(c.e * HARD_MULT, HARD_FLOOR);
-      } else {
-        // medium: drift toward the neutral middle from either direction
-        c.e = Math.sqrt(c.e * MEDIUM_TARGET);
+        c.e = c.e * HARD_MULT;
+        if (c.e < DROP_BELOW) {
+          // fell below the appearance threshold: back to the grid
+          delete c.a;
+        }
       }
+      // medium: the card holds its position exactly
       c.n += 1;
       d.cards[char] = c;
       // a tab left open across midnight must roll its daily counter
@@ -890,14 +889,10 @@ export default function HanziApp() {
       d.reviews += 1;
       d.today += 1;
 
-      const rot = rotation(d);
-      const known = rot.filter(([f]) => {
+      const known = rotation(d).filter(([f]) => {
         const k = card(d, f);
         return k.n > 0 && k.e >= KNOWN_EASE;
       }).length;
-      if (known / rot.length >= GROW_AT && d.pool < deckData(d).length) {
-        d.pool += 1;
-      }
       d.hist = {
         ...d.hist,
         [todayKey()]: { r: d.today, k: known, n: rotation(d).length },
@@ -930,21 +925,22 @@ export default function HanziApp() {
     setRevealed(true);
   }, [state, commit]);
 
-  // Grid click: pull a card into the review rotation. Unseen cards are
-  // adopted ahead of the pool; hard cards get reset to neutral ease.
+  // Grid click: pull a card into the review rotation at entry ease.
   const promote = useCallback(
     (front) => {
       if (!state) return;
       const next = { ...state, decks: { ...state.decks } };
       const d = { ...next.decks[next.cur], cards: { ...next.decks[next.cur].cards } };
       const c = { ...card(d, front) };
-      if (c.n === 0) c.a = 1;
-      else c.e = 1;
+      c.a = 1;
+      c.e = ENTRY_EASE;
       d.cards[front] = c;
       next.decks[next.cur] = d;
       commit(next);
+      // if reviews were empty, deal the first card now
+      if (!char) setChar(pickNext(d, recentRef.current));
     },
-    [state, commit]
+    [state, char, commit]
   );
 
   const switchDeck = useCallback(
@@ -1089,7 +1085,7 @@ export default function HanziApp() {
     setRevealed(false);
   };
 
-  if (!state || !char) {
+  if (!state) {
     return <main className="min-h-dvh bg-neutral-950" />;
   }
 
@@ -1115,8 +1111,10 @@ export default function HanziApp() {
     return <GridView deck={deck} onPromote={promote} onClose={() => setView("review")} />;
   }
 
-  const entry = deckData(deck).find(([f]) => f === char) || [char, "", ""];
-  const [, hint, back] = entry;
+  const entry = char
+    ? deckData(deck).find(([f]) => f === char) || [char, "", ""]
+    : null;
+  const [, hint, back] = entry || ["", "", ""];
   const isHanzi = !deck.data;
 
   // swipe-to-grade: ← hard, ↓ medium, → easy (pointer events cover touch + mouse)
@@ -1184,6 +1182,17 @@ export default function HanziApp() {
         </div>
       </div>
 
+      {!char ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="text-neutral-500 text-sm">nothing in rotation</div>
+          <button
+            onClick={() => setView("grid")}
+            className="px-5 py-3 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-200 active:bg-neutral-800"
+          >
+            open the grid and tap cards to learn
+          </button>
+        </div>
+      ) : (
       <div
         className="flex-1 flex items-center justify-center px-6 py-2"
         style={{ touchAction: "none" }}
@@ -1248,6 +1257,7 @@ export default function HanziApp() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="p-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         {revealed ? (
