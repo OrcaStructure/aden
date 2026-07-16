@@ -1,0 +1,18 @@
+{
+  "name": "汉字",
+  "short_name": "汉字",
+  "description": "Anti-anki flashcards",
+  "start_url": "/hanzi",
+  "scope": "/hanzi",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
