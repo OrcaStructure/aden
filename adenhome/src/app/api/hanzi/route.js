@@ -1,15 +1,17 @@
 // app/api/hanzi/route.js
 import { NextResponse } from "next/server";
+import { cert, getApps, getApp, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 900_000; // stay under Firestore's 1 MiB doc limit
 const NO_STORE = { "Cache-Control": "no-store" };
 
-// firebase-admin throws at import when its env vars are absent, which would
-// turn every request into an opaque 500. Initialize lazily and report what
-// is actually wrong instead.
-async function progressDoc() {
+// Imports stay static (dynamic import of externals breaks under
+// turbopack-on-Netlify), but initialization stays lazy and inside the request
+// so a misconfigured server answers with a diagnostic instead of an opaque 500.
+function progressDoc() {
   const missing = [
     "FIREBASE_PROJECT_ID",
     "FIREBASE_CLIENT_EMAIL",
@@ -24,11 +26,16 @@ async function progressDoc() {
     throw err;
   }
   try {
-    const [{ getFirestore }] = await Promise.all([
-      import("firebase-admin/firestore"),
-      import("../../../lib/firebaseAdmin"),
-    ]);
-    return getFirestore().doc("hanzi/progress");
+    const app = getApps().length
+      ? getApp()
+      : initializeApp({
+          credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+          }),
+        });
+    return getFirestore(app).doc("hanzi/progress");
   } catch (e) {
     const err = new Error(
       "Firebase admin failed to initialize — check FIREBASE_PRIVATE_KEY formatting. " +
@@ -146,7 +153,7 @@ export async function GET(request) {
     if (!authorized(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE });
     }
-    const snap = await (await progressDoc()).get();
+    const snap = await progressDoc().get();
     const doc = snap.exists ? fromStorage(snap.data()) : null;
     return NextResponse.json(doc, { headers: NO_STORE });
   } catch (error) {
@@ -180,7 +187,7 @@ export async function POST(request) {
       dead: Array.isArray(body.dead) ? body.dead.filter((x) => typeof x === "string") : [],
     };
 
-    const docRef = await progressDoc();
+    const docRef = progressDoc();
     const snap = await docRef.get();
     const existing = snap.exists ? fromStorage(snap.data()) : null;
     const merged = mergeStates(existing, incoming);
