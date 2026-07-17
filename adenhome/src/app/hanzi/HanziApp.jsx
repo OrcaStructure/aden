@@ -634,6 +634,13 @@ function StatsView({
             </button>
             {copied && <span className="text-neutral-500">{copied}</span>}
           </div>
+          <div className="text-neutral-700">
+            build {(process.env.NEXT_PUBLIC_COMMIT || "dev").slice(0, 7)} ·{" "}
+            {typeof navigator !== "undefined" && navigator.standalone
+              ? "home-screen app"
+              : "browser"}{" "}
+            · {typeof window !== "undefined" ? window.location.origin : ""}
+          </div>
         </div>
       </div>
     </main>
@@ -759,8 +766,8 @@ export default function HanziApp() {
           setSync("error");
           res
             .json()
-            .then((b) => setSyncMsg(b?.error || ""))
-            .catch(() => setSyncMsg(""));
+            .then((b) => setSyncMsg(b?.error || `HTTP ${res.status}`))
+            .catch(() => setSyncMsg(`HTTP ${res.status} (non-JSON response)`));
           return null;
         }
         setSync("ok");
@@ -779,8 +786,9 @@ export default function HanziApp() {
           setRevealed(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         setSync("error");
+        setSyncMsg(`network error: ${error?.message || "request failed"}`);
       })
       .finally(() => {
         syncedRef.current = true;
@@ -809,8 +817,8 @@ export default function HanziApp() {
             setSync("error");
             res
               .json()
-              .then((b) => setSyncMsg(b?.error || ""))
-              .catch(() => setSyncMsg(""));
+              .then((b) => setSyncMsg(b?.error || `HTTP ${res.status}`))
+              .catch(() => setSyncMsg(`HTTP ${res.status} (non-JSON response)`));
             return;
           }
           setSync("ok");
@@ -836,8 +844,9 @@ export default function HanziApp() {
             }
           }
         })
-        .catch(() => {
+        .catch((error) => {
           setSync("error");
+          setSyncMsg(`network error: ${error?.message || "request failed"}`);
         });
     }, 400);
     return () => clearTimeout(timeout);
