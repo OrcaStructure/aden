@@ -362,6 +362,7 @@ function StatsView({
   onImportDeck,
   onDeleteDeck,
   onSaveSyncKey,
+  onRetrySync,
   onClose,
 }) {
   const [adding, setAdding] = useState(false);
@@ -619,6 +620,12 @@ function StatsView({
               save key
             </button>
             {keyFlash && <span className="text-neutral-400">{keyFlash}</span>}
+            <button
+              onClick={onRetrySync}
+              className="px-3 py-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:border-neutral-500"
+            >
+              retry sync
+            </button>
             <button
               onClick={copyBackup}
               className="px-3 py-1.5 rounded-lg border border-neutral-700 text-neutral-300 hover:border-neutral-500"
@@ -1027,6 +1034,12 @@ export default function HanziApp() {
     [state, commit]
   );
 
+  const retrySync = useCallback(() => {
+    setSync(null);
+    lastPostOkRef.current = 0;
+    if (state) commit({ ...state });
+  }, [state, commit]);
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.repeat) return;
@@ -1102,6 +1115,7 @@ export default function HanziApp() {
         onImportDeck={importDeck}
         onDeleteDeck={deleteDeck}
         onSaveSyncKey={saveSyncKey}
+        onRetrySync={retrySync}
         onClose={() => setView("review")}
       />
     );
