@@ -756,7 +756,10 @@ export default function HanziApp() {
     setState(local);
     setChar(pickNext(local.decks[local.cur], []));
 
-    fetch("/api/hanzi", { headers: syncHeaders(), cache: "no-store" })
+    // no `cache` fetch option: it can make WebKit reject the request outright
+    // in installed home-screen apps; freshness comes from the ?t= buster and
+    // the server's no-store headers
+    fetch(`/api/hanzi?t=${Date.now()}`, { headers: syncHeaders() })
       .then((res) => {
         if (res.status === 401) {
           setSync("auth");
@@ -805,7 +808,6 @@ export default function HanziApp() {
       fetch("/api/hanzi", {
         method: "POST",
         headers: syncHeaders(),
-        cache: "no-store",
         body: JSON.stringify(state),
       })
         .then(async (res) => {
