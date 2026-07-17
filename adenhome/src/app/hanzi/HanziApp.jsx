@@ -119,9 +119,16 @@ function saveState(s) {
   }
 }
 
+// strip anything that isn't a printable ASCII header character — an invisible
+// pasted character (newline, curly quote, zero-width space) makes fetch throw
+// a bare TypeError before the request is even sent
+function cleanSyncKey(key) {
+  return (key || "").replace(/[^\x21-\x7e]/g, "");
+}
+
 function getSyncKey() {
   try {
-    return localStorage.getItem(SYNC_KEY_STORE) || "";
+    return cleanSyncKey(localStorage.getItem(SYNC_KEY_STORE) || "");
   } catch {
     return "";
   }
@@ -1034,8 +1041,9 @@ export default function HanziApp() {
 
   const saveSyncKey = useCallback(
     (key) => {
+      const clean = cleanSyncKey(key);
       try {
-        if (key) localStorage.setItem(SYNC_KEY_STORE, key);
+        if (clean) localStorage.setItem(SYNC_KEY_STORE, clean);
         else localStorage.removeItem(SYNC_KEY_STORE);
       } catch {}
       // show "checking" until the retry resolves, then retry with the new key
