@@ -148,12 +148,29 @@ function mergeStates(existing, incoming) {
   };
 }
 
+// Once per day, the first sync snapshots the previous stored state to a
+// dated doc — a rolling safety net so no overwrite (bug, stale device, or
+// operator error) can silently destroy more than one day of progress.
+async function backupExisting(snap) {
+  if (!snap.exists) return;
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = getFirestore().doc(`hanzi/backup-${day}`);
+  if (!(await ref.get()).exists) {
+    await ref.set(snap.data());
+  }
+}
+
 export async function GET(request) {
   try {
     if (!authorized(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE });
     }
-    const snap = await progressDoc().get();
+    // ?backup=YYYY-MM-DD reads a daily snapshot instead of the live doc
+    const day = new URL(request.url).searchParams.get("backup");
+    const ref = day && /^\d{4}-\d{2}-\d{2}$/.test(day)
+      ? getFirestore().doc(`hanzi/backup-${day}`)
+      : progressDoc();
+    const snap = await ref.get();
     const doc = snap.exists ? fromStorage(snap.data()) : null;
     return NextResponse.json(doc, { headers: NO_STORE });
   } catch (error) {
@@ -196,6 +213,7 @@ export async function POST(request) {
     if (JSON.stringify(stored).length > MAX_BYTES) {
       return NextResponse.json({ error: "State too large" }, { status: 413, headers: NO_STORE });
     }
+    await backupExisting(snap);
     await docRef.set(stored);
 
     return NextResponse.json({ status: "success", state: merged }, { headers: NO_STORE });
