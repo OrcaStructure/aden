@@ -7,14 +7,9 @@ const STORE_KEY = "hanzi-v2";
 const OLD_STORE_KEY = "hanzi-v1";
 const SYNC_KEY_STORE = "hanzi-sync-key";
 const START_POOL = 10;
-const EASY_MULT = 1.7;
-const EASY_CAP = 8;
-const HARD_MULT = 0.35;
-const NEW_WEIGHT = 2.5;
-const KNOWN_EASE = 1.5; // a card counts as "known" once its ease reaches this
 const NO_REPEAT_WINDOW = 3;
-const ENTRY_EASE = 1; // ease a card gets when tapped into rotation from the grid
-const DROP_BELOW = 0.5; // below this a card falls out of rotation, back to the grid
+const BOOST_SHOWINGS = 2; // guaranteed appearances for a freshly adopted card...
+const BOOST_WINDOW = 15; // ...scheduled at random points within this many reviews
 
 const HANZI_FONT =
   '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif';
@@ -173,51 +168,40 @@ function mergeIntoLocal(local, remote) {
 }
 
 function card(deck, front) {
-  return deck.cards[front] || { e: 1, n: 0 };
+  return deck.cards[front] || { n: 0 };
 }
 
 // The review rotation: only cards adopted from the grid (card.a flag).
-// Nothing enters by default — unseen is the floor of the score scale, and
-// cards graded below DROP_BELOW fall back out of rotation.
+// Nothing enters by default, and a wrong answer removes the card again.
 function rotation(deck) {
   return deckData(deck).filter(([f]) => card(deck, f).a);
 }
 
-function weightOf(deck, front) {
-  const c = card(deck, front);
-  return c.n === 0 ? NEW_WEIGHT : c.e;
-}
-
-// Weighted-random pick from the rotation. Weight = ease, so easy cards come
-// up MORE often and hard cards fade out (the anti-anki part).
+// Fresh cards carry scheduled appearance slots (absolute review numbers in
+// card.due). A card whose slot has come up takes priority; otherwise every
+// card in rotation is equally likely (uniform base rate).
 function pickNext(deck, recent) {
   const pool = rotation(deck);
   if (pool.length === 0) return null;
   const avoid = new Set(recent.slice(-Math.min(NO_REPEAT_WINDOW, pool.length - 1)));
-  let candidates = pool.filter(([f]) => !avoid.has(f));
-  if (candidates.length === 0) candidates = pool;
-  const weights = candidates.map(([f]) => weightOf(deck, f));
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < candidates.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return candidates[i][0];
-  }
-  return candidates[candidates.length - 1][0];
+  const nextReview = (deck.reviews || 0) + 1;
+  const due = pool.filter(([f]) => (card(deck, f).due || [])[0] <= nextReview);
+  const candidates = due.length ? due : pool;
+  let filtered = candidates.filter(([f]) => !avoid.has(f));
+  if (filtered.length === 0) filtered = candidates;
+  return filtered[Math.floor(Math.random() * filtered.length)][0];
 }
 
-function knownCount(deck) {
+function settledCount(deck) {
   return rotation(deck).filter(([f]) => {
     const c = card(deck, f);
-    return c.n > 0 && c.e >= KNOWN_EASE;
+    return c.n > 0 && !(c.due || []).length;
   }).length;
 }
 
 function statusOf(deck, front) {
   const c = card(deck, front);
-  if (c.n === 0) return "new";
-  if (c.e >= KNOWN_EASE) return "known";
-  return "learning";
+  return (c.due || []).length || c.n === 0 ? "fresh" : "settled";
 }
 
 function frontFontSize(text) {
@@ -326,7 +310,7 @@ function DailyChart({ deck }) {
         <span>{days[0].key.slice(5)}</span>
         <span>
           <span className="text-neutral-500">▮ reviews/day (max {maxR})</span>{" "}
-          <span className="text-amber-300/70">— known ({days[29].k})</span>
+          <span className="text-amber-300/70">— settled ({days[29].k})</span>
         </span>
         <span>today</span>
       </div>
@@ -335,10 +319,8 @@ function DailyChart({ deck }) {
 }
 
 const STATUS_STYLE = {
-  known: "text-emerald-300 border-emerald-900",
-  learning: "text-neutral-300 border-neutral-700",
-  hard: "text-red-400 border-red-900",
-  new: "text-sky-300 border-sky-900",
+  settled: "text-emerald-300 border-emerald-900",
+  fresh: "text-sky-300 border-sky-900",
 };
 
 function syncLabel(sync) {
@@ -381,8 +363,8 @@ function StatsView({
   const deck = state.decks[state.cur];
   const data = deckData(deck);
   const rot = rotation(deck);
-  const known = knownCount(deck);
-  const counts = { known: 0, learning: 0, new: 0 };
+  const settled = settledCount(deck);
+  const counts = { settled: 0, fresh: 0 };
   rot.forEach(([f]) => counts[statusOf(deck, f)]++);
   let dropped = 0;
   let unseen = 0;
@@ -393,18 +375,18 @@ function StatsView({
     else dropped += 1;
   });
 
-  // live "what comes next" probabilities
-  const avoid = new Set(recent.slice(-Math.min(NO_REPEAT_WINDOW, rot.length - 1)));
-  let candidates = rot.filter(([f]) => !avoid.has(f));
-  if (candidates.length === 0) candidates = rot;
-  const totalW = candidates.reduce((a, [f]) => a + weightOf(deck, f), 0);
-  const nextUp = [...candidates]
-    .sort((a, b) => weightOf(deck, b[0]) - weightOf(deck, a[0]))
-    .slice(0, 6);
+  // fresh cards still owed scheduled showings
+  const queued = rot
+    .filter(([f]) => (card(deck, f).due || []).length > 0)
+    .slice(0, 8);
 
-  const sortedRot = [...rot].sort(
-    (a, b) => card(deck, b[0]).e - card(deck, a[0]).e
-  );
+  const sortedRot = [...rot].sort((a, b) => {
+    const ca = card(deck, a[0]);
+    const cb = card(deck, b[0]);
+    const fa = (ca.due || []).length ? 0 : 1;
+    const fb = (cb.due || []).length ? 0 : 1;
+    return fa - fb || cb.n - ca.n;
+  });
 
   const copyBackup = async () => {
     try {
@@ -504,7 +486,7 @@ function StatsView({
             [deck.reviews, "reviews"],
             [deck.today, "today"],
             [streakOf(deck), "day streak"],
-            [`${known}`, "known"],
+            [`${settled}`, "settled"],
           ].map(([v, label]) => (
             <div key={label} className="rounded-lg bg-neutral-900 border border-neutral-800 py-3">
               <div className="text-xl tabular-nums">{v}</div>
@@ -523,18 +505,16 @@ function StatsView({
         <div className="mb-6">
           <div className="text-[11px] text-neutral-600 mb-2">cards</div>
           <div className="flex h-2 rounded-full overflow-hidden bg-neutral-900 mb-2">
-            {counts.known > 0 && (
-              <div className="bg-emerald-500/70" style={{ flex: counts.known }} />
+            {counts.settled > 0 && (
+              <div className="bg-emerald-500/70" style={{ flex: counts.settled }} />
             )}
-            {counts.learning > 0 && (
-              <div className="bg-neutral-500" style={{ flex: counts.learning }} />
+            {counts.fresh > 0 && (
+              <div className="bg-sky-500/70" style={{ flex: counts.fresh }} />
             )}
-            {counts.new > 0 && <div className="bg-sky-500/70" style={{ flex: counts.new }} />}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-500">
-            <span><span className="text-emerald-400">●</span> known {counts.known}</span>
-            <span><span className="text-neutral-400">●</span> learning {counts.learning}</span>
-            <span><span className="text-sky-400">●</span> unrated {counts.new}</span>
+            <span><span className="text-emerald-400">●</span> settled {counts.settled}</span>
+            <span><span className="text-sky-400">●</span> fresh {counts.fresh}</span>
             <span className="text-red-400/80">dropped {dropped}</span>
             <span className="text-neutral-700">unseen {unseen}</span>
           </div>
@@ -543,7 +523,7 @@ function StatsView({
         {/* per-card map */}
         <div className="mb-6">
           <div className="text-[11px] text-neutral-600 mb-2">
-            rotation, easiest first (number = ease weight)
+            rotation, fresh first (number = times seen)
           </div>
           <div className="flex flex-wrap gap-1.5">
             {sortedRot.map(([f]) => {
@@ -560,7 +540,7 @@ function StatsView({
                 >
                   {f.length > 12 ? f.slice(0, 12) + "…" : f}
                   <span className="text-[9px] text-neutral-600 ml-1">
-                    {c.n === 0 ? "new" : c.e.toFixed(1)}
+                    {c.n === 0 ? "new" : `×${c.n}`}
                   </span>
                 </span>
               );
@@ -572,32 +552,32 @@ function StatsView({
         <div className="text-[11px] text-neutral-600 mb-2">algorithm</div>
         <div className="rounded-lg bg-neutral-900 border border-neutral-800 p-4 text-xs text-neutral-400 leading-relaxed space-y-2 mb-6">
           <p>
-            Unseen is the bottom of the scale — below the threshold to ever
-            appear. Cards enter reviews only when you tap them in the grid
-            (entry ease {ENTRY_EASE}). Reviews are drawn at random, weighted by
-            ease, so easy cards appear <em>more</em> often — the opposite of
-            spaced repetition. Freshly adopted cards get weight {NEW_WEIGHT}{" "}
-            until first graded; the last {NO_REPEAT_WINDOW} shown are excluded.
+            Cards enter reviews only when you tap them in the grid. A freshly
+            added (or re-added) card is guaranteed {BOOST_SHOWINGS} appearances,
+            scheduled at random points within its next {BOOST_WINDOW} reviews;
+            after that it joins the base rate — every card in rotation equally
+            likely, drawn at random (the last {NO_REPEAT_WINDOW} shown are
+            excluded).
           </p>
           <p>
-            <span className="text-emerald-400">easy</span> ×{EASY_MULT} (cap {EASY_CAP}) ·{" "}
-            <span className="text-amber-300">medium</span> holds position ·{" "}
-            <span className="text-red-400">hard</span> ×{HARD_MULT} — anything
-            pushed below {DROP_BELOW} drops out of reviews, back to the grid. A
-            card graded hard straight after adoption always drops.
+            <span className="text-emerald-400">right</span> keeps a card in
+            rotation · <span className="text-red-400">wrong</span> sends it
+            straight back to the grid.
           </p>
-          <p className="text-neutral-500">
-            most likely next:{" "}
-            {nextUp.map(([f]) => (
-              <span key={f} className="mr-2 text-neutral-300" lang="zh-Hans">
-                {f.length > 8 ? f.slice(0, 8) + "…" : f}
-                <span className="text-neutral-600">
-                  {" "}
-                  {Math.round((weightOf(deck, f) / totalW) * 100)}%
+          {queued.length > 0 && (
+            <p className="text-neutral-500">
+              scheduled soon:{" "}
+              {queued.map(([f]) => (
+                <span key={f} className="mr-2 text-neutral-300" lang="zh-Hans">
+                  {f.length > 8 ? f.slice(0, 8) + "…" : f}
+                  <span className="text-neutral-600">
+                    {" "}
+                    ×{(card(deck, f).due || []).length}
+                  </span>
                 </span>
-              </span>
-            ))}
-          </p>
+              ))}
+            </p>
+          )}
         </div>
 
         {/* sync + backup */}
@@ -662,9 +642,9 @@ function GridView({ deck, onPromote, onClose }) {
     const c = card(deck, f);
     if (c.a) return; // in rotation
     if (c.n === 0) unseen.push({ f, h, b, i });
-    else hard.push({ f, h, b, e: c.e, i }); // dropped out of rotation
+    else hard.push({ f, h, b, n: c.n, i }); // dropped out of rotation
   });
-  hard.sort((a, b) => a.e - b.e || a.i - b.i);
+  hard.sort((a, b) => b.n - a.n || a.i - b.i);
 
   const cell = (item, isHard) => (
     <button
@@ -894,16 +874,16 @@ export default function HanziApp() {
       const next = { ...state, decks: { ...state.decks } };
       const d = { ...next.decks[next.cur], cards: { ...next.decks[next.cur].cards } };
       const c = { ...card(d, char) };
-      if (kind === "easy") {
-        c.e = Math.min(c.e * EASY_MULT, EASY_CAP);
-      } else if (kind === "hard") {
-        c.e = c.e * HARD_MULT;
-        if (c.e < DROP_BELOW) {
-          // fell below the appearance threshold: back to the grid
-          delete c.a;
-        }
+      if (kind === "wrong") {
+        // back to the grid
+        delete c.a;
+        delete c.due;
+      } else if ((c.due || []).length) {
+        // this appearance consumes the earliest scheduled slot
+        const rest = c.due.slice(1);
+        if (rest.length) c.due = rest;
+        else delete c.due;
       }
-      // medium: the card holds its position exactly
       c.n += 1;
       d.cards[char] = c;
       // a tab left open across midnight must roll its daily counter
@@ -914,13 +894,9 @@ export default function HanziApp() {
       d.reviews += 1;
       d.today += 1;
 
-      const known = rotation(d).filter(([f]) => {
-        const k = card(d, f);
-        return k.n > 0 && k.e >= KNOWN_EASE;
-      }).length;
       d.hist = {
         ...d.hist,
-        [todayKey()]: { r: d.today, k: known, n: rotation(d).length },
+        [todayKey()]: { r: d.today, k: settledCount(d), n: rotation(d).length },
       };
       next.decks[next.cur] = d;
 
@@ -950,7 +926,8 @@ export default function HanziApp() {
     setRevealed(true);
   }, [state, commit]);
 
-  // Grid click: pull a card into the review rotation at entry ease.
+  // Grid click: pull a card into rotation and schedule its guaranteed
+  // showings at random points within the next BOOST_WINDOW reviews.
   const promote = useCallback(
     (front) => {
       if (!state) return;
@@ -958,7 +935,11 @@ export default function HanziApp() {
       const d = { ...next.decks[next.cur], cards: { ...next.decks[next.cur].cards } };
       const c = { ...card(d, front) };
       c.a = 1;
-      c.e = ENTRY_EASE;
+      const offsets = new Set();
+      while (offsets.size < BOOST_SHOWINGS) {
+        offsets.add(1 + Math.floor(Math.random() * BOOST_WINDOW));
+      }
+      c.due = [...offsets].map((o) => (d.reviews || 0) + o).sort((x, y) => x - y);
       d.cards[front] = c;
       next.decks[next.cur] = d;
       commit(next);
@@ -1080,11 +1061,9 @@ export default function HanziApp() {
         e.preventDefault();
         setRevealed((r) => (r ? r : true));
       } else if (e.key === "1" || e.code === "Digit1" || e.key === "ArrowLeft") {
-        grade("hard");
-      } else if (e.key === "2" || e.code === "Digit2" || e.key === "ArrowDown") {
-        grade("medium");
-      } else if (e.key === "3" || e.code === "Digit3" || e.key === "ArrowRight") {
-        grade("easy");
+        grade("wrong");
+      } else if (e.key === "2" || e.code === "Digit2" || e.key === "ArrowRight") {
+        grade("right");
       } else if (e.key === "z" || e.key === "u") {
         undo();
       }
@@ -1150,7 +1129,7 @@ export default function HanziApp() {
   const [, hint, back] = entry || ["", "", ""];
   const isHanzi = !deck.data;
 
-  // swipe-to-grade: ← hard, ↓ medium, → easy (pointer events cover touch + mouse)
+  // swipe-to-grade: ← wrong, → right (pointer events cover touch + mouse)
   const onCardPointerDown = (e) => {
     swipeRef.current = { x: e.clientX, y: e.clientY };
   };
@@ -1162,10 +1141,7 @@ export default function HanziApp() {
     const dy = e.clientY - s0.y;
     if (Math.abs(dx) > 60 && Math.abs(dx) > 1.3 * Math.abs(dy)) {
       suppressClickRef.current = true;
-      grade(dx < 0 ? "hard" : "easy");
-    } else if (dy > 60 && dy > 1.3 * Math.abs(dx)) {
-      suppressClickRef.current = true;
-      grade("medium");
+      grade(dx < 0 ? "wrong" : "right");
     }
   };
   const onCardClick = () => {
@@ -1296,32 +1272,25 @@ export default function HanziApp() {
         {revealed ? (
           <div className="flex gap-3 max-w-lg mx-auto">
             <button
-              onClick={() => grade("hard")}
+              onClick={() => grade("wrong")}
               className="flex-1 py-4 rounded-xl bg-neutral-900 text-red-400/90 text-lg font-medium active:bg-neutral-800"
             >
-              hard
+              wrong
             </button>
             <button
-              onClick={() => grade("medium")}
-              className="flex-1 py-4 rounded-xl bg-neutral-900 text-amber-300/90 text-lg font-medium active:bg-neutral-800"
-            >
-              medium
-            </button>
-            <button
-              onClick={() => grade("easy")}
+              onClick={() => grade("right")}
               className="flex-1 py-4 rounded-xl bg-neutral-900 text-emerald-400/90 text-lg font-medium active:bg-neutral-800"
             >
-              easy
+              right
             </button>
           </div>
         ) : (
           <div className="h-[60px]" />
         )}
         <div className="flex justify-center flex-wrap gap-x-5 gap-y-1 mt-3 text-[11px] text-neutral-800">
-          <span className="sm:hidden">swipe ← hard · ↓ medium · → easy</span>
-          <span className="hidden sm:inline">1 hard</span>
-          <span className="hidden sm:inline">2 medium</span>
-          <span className="hidden sm:inline">3 easy</span>
+          <span className="sm:hidden">swipe ← wrong · → right</span>
+          <span className="hidden sm:inline">1 / ← wrong</span>
+          <span className="hidden sm:inline">2 / → right</span>
           <button onClick={undo} className="hover:text-neutral-500">
             undo<span className="hidden sm:inline"> (z)</span>
           </button>
